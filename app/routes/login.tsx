@@ -1,6 +1,6 @@
-import { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 
-export default function Index() {
+const Index: React.FC = () => {
   const [usernameEmail, setUsernameEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -35,4 +35,6 @@ export default function Index() {
       </button>
     </div>
   );
-}
+};
+
+export default Index;

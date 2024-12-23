@@ -22,6 +22,7 @@ export type Story = z.infer<typeof ZStory>;
 export type SortField = keyof Story;
 
 export async function getStories(
+  host: string,
   sessionId: string | null,
   options: QueryOptions<SortField>,
 ): Promise<Page<Story>> {
@@ -32,7 +33,7 @@ export async function getStories(
     ]);
 
     const response = await fetch(
-      `http://localhost:8000/api/art/story?${generateQueryString(params)}`,
+      `${host}/api/art/story${generateQueryString(params)}`,
       {
         headers,
         credentials: "include",

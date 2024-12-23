@@ -7,7 +7,9 @@ import {
   ScrollRestoration,
   useRouteError,
 } from "@remix-run/react";
+import { useEffect, useState } from "react";
 import type { LinksFunction } from "@remix-run/node";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import "./tailwind.css";
 
@@ -33,7 +35,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export function ErrorBoundary() {
   const error = useRouteError();
-  console.error(error);
+
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
 
   let status: number;
   let message: string;
@@ -66,5 +71,20 @@ export function ErrorBoundary() {
 }
 
 export default function App() {
-  return <Outlet />;
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000,
+          },
+        },
+      }),
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Outlet />
+    </QueryClientProvider>
+  );
 }

@@ -2,10 +2,8 @@ import type {
   LoaderFunction,
   LoaderFunctionArgs,
   MetaFunction,
-  ActionFunctionArgs,
-  ActionFunction,
 } from "@remix-run/node";
-import { useLoaderData, Form, useActionData } from "@remix-run/react";
+import { useLoaderData, Form } from "@remix-run/react";
 
 import { getStories, SortField, Story } from "~/api/story.http";
 import { QueryOptions } from "~/api/query.interface";
@@ -65,27 +63,9 @@ export const loader: LoaderFunction = async ({
   return { stories };
 };
 
-interface ActionData {
-  message: string;
-}
-
-export const action: ActionFunction = async ({
-  request,
-}: ActionFunctionArgs): Promise<ActionData> => {
-  const body = await request.formData();
-  const limit = body.get("limit");
-  const searchText = body.get("searchText");
-  return { message: `Hello, ${searchText} (${limit})` };
-};
-
 export default function Index() {
   const loaderData = useLoaderData<LoaderData>();
   console.log(JSON.stringify(loaderData));
-
-  const actionData = useActionData<ActionData>();
-  console.log(JSON.stringify(actionData));
-
-  const actionDataStr = actionData ? JSON.stringify(actionData) : "N/A";
 
   const [limit, setLimit] = useState<number | null>(null);
   const [searchTitle, setSearchTitle] = useState<string | null>(null);
@@ -96,7 +76,7 @@ export default function Index() {
 
   return (
     <>
-      <Form method="post">
+      <div>
         <input
           name="limit"
           type="number"
@@ -108,9 +88,8 @@ export default function Index() {
           value={searchTitle !== null ? searchTitle : ""}
           onChange={(e) => setSearchTitle(e.target.value)}
         />
-        <button type="submit">Search</button>
-      </Form>
-      <p>{actionDataStr}</p>
+        <button type="button">Search</button>
+      </div>
       {storyTitleElements}
     </>
   );

@@ -3,7 +3,7 @@ import type {
   LoaderFunctionArgs,
   MetaFunction,
 } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { Link, useLoaderData } from "@remix-run/react";
 
 import { getStories, SortField } from "~/api/http/story.http";
 import { QueryOptions } from "~/api/query.interface";
@@ -168,7 +168,9 @@ const View: React.FC<Props> = ({
   }, [setSearchOptions, limit, offset, searchText]);
 
   const storyTitleElements = stories?.items.map((s, i) => (
-    <div key={`storyTitles-${i}`}>{s.title}</div>
+    <div key={`storyTitles-${i}`}>
+      <Link to={`/stories/${s.uuid}`}>{s.title}</Link>
+    </div>
   ));
 
   return (

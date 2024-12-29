@@ -2,7 +2,13 @@ import { z } from 'zod';
 
 import { toHeaders as commonToHeaders } from '~/api/common.interface';
 import {
+  QueryOptions,
+  toHeaders as queryToHeaders,
+  toParams as queryToParams,
+} from '~/api/query.interface';
+import {
   Page,
+  generateQueryString,
   handleError,
   handlePaginatedResponse,
   handleResponse,
@@ -39,13 +45,22 @@ export async function getTag(
 
 export async function getTags(
   host: string,
+  options: QueryOptions<SortField>,
   sessionId: string | null,
 ): Promise<Page<Tag>> {
   try {
-    const response = await fetch(`${host}/api/art/tag`, {
-      headers: await commonToHeaders(sessionId, {}),
-      credentials: 'include',
-    });
+    const [headers, params] = await Promise.all([
+      queryToHeaders(sessionId, options),
+      queryToParams(options, 'tags'),
+    ]);
+
+    const response = await fetch(
+      `${host}/api/art/tag${generateQueryString(params)}`,
+      {
+        headers,
+        credentials: 'include',
+      },
+    );
     return await handlePaginatedResponse(response, ZTag);
   } catch (error: unknown) {
     handleError(getTags.name, error);

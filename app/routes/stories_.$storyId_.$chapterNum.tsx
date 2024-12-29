@@ -1,4 +1,8 @@
-import { LoaderFunction, LoaderFunctionArgs } from '@remix-run/node';
+import {
+  LoaderFunction,
+  LoaderFunctionArgs,
+  MetaFunction,
+} from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 import {
   DehydratedState,
@@ -12,13 +16,27 @@ import { parse as markedParse } from 'marked';
 import React, { useEffect } from 'react';
 
 import { getChapter, getChapters } from '~/api/http/chapter.http';
+import { getStory } from '~/api/http/story.http';
 import { getSessionId } from '~/api/sessionid.lib.server';
 import { allPages } from '~/api/utils.lib';
 import { useConfig } from '~/hooks/use-config';
 
+export const meta: MetaFunction<typeof loader> = ({
+  data,
+}: {
+  data: LoaderData;
+}) => {
+  return [
+    { title: `Henhouse Server - ${data.storyTitle} - ${data.chapterName}` },
+    { name: 'description', content: 'Welcome to Henhouse!' },
+  ];
+};
+
 interface LoaderData {
   dehydratedState: DehydratedState;
   chapterId: string | null;
+  storyTitle: string | null;
+  chapterName: string | null;
 }
 
 export const loader: LoaderFunction = async ({
@@ -32,30 +50,46 @@ export const loader: LoaderFunction = async ({
 
   const queryClient = new QueryClient();
 
-  const chapters = await queryClient.fetchQuery({
-    queryKey: ['story', storyId, 'chapters'],
-    queryFn: () =>
-      allPages((limit, offset) =>
-        getChapters(process.env.API_HOST as string, storyId, sessionId, {
-          limit,
-          offset,
-        }),
-      ),
-  });
+  const [story, chapters] = await Promise.all([
+    queryClient.fetchQuery({
+      queryKey: ['story', storyId],
+      queryFn: () =>
+        getStory(process.env.API_HOST as string, storyId, sessionId),
+    }),
+    queryClient.fetchQuery({
+      queryKey: ['story', storyId, 'chapters'],
+      queryFn: () =>
+        allPages((limit, offset) =>
+          getChapters(
+            process.env.API_HOST as string,
+            storyId,
+            {
+              limit,
+              offset,
+            },
+            sessionId,
+          ),
+        ),
+    }),
+  ]);
 
   const chapterId = chapters[chapterNum]?.uuid ?? null;
 
+  let chapterName: string | null = null;
   if (chapterId !== null) {
-    await queryClient.prefetchQuery({
+    const chapter = await queryClient.fetchQuery({
       queryKey: ['chapter', chapterId],
       queryFn: () =>
         getChapter(process.env.API_HOST as string, chapterId, sessionId),
     });
+    chapterName = chapter.name;
   }
 
   return {
-    chapterId,
     dehydratedState: dehydrate(queryClient),
+    chapterId,
+    storyTitle: story.title,
+    chapterName,
   };
 };
 

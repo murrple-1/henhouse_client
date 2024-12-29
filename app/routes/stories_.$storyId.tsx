@@ -1,4 +1,8 @@
-import { LoaderFunction, LoaderFunctionArgs } from '@remix-run/node';
+import {
+  LoaderFunction,
+  LoaderFunctionArgs,
+  MetaFunction,
+} from '@remix-run/node';
 import { Link, useLoaderData } from '@remix-run/react';
 import {
   DehydratedState,
@@ -15,9 +19,21 @@ import { getSessionId } from '~/api/sessionid.lib.server';
 import { allPages } from '~/api/utils.lib';
 import { useConfig } from '~/hooks/use-config';
 
+export const meta: MetaFunction<typeof loader> = ({
+  data,
+}: {
+  data: LoaderData;
+}) => {
+  return [
+    { title: `Henhouse Server - ${data.storyTitle}` },
+    { name: 'description', content: 'Welcome to Henhouse!' },
+  ];
+};
+
 interface LoaderData {
   dehydratedState: DehydratedState;
   storyId: string;
+  storyTitle: string | null;
 }
 
 export const loader: LoaderFunction = async ({
@@ -29,8 +45,8 @@ export const loader: LoaderFunction = async ({
   const storyId = params.storyId as string;
   const queryClient = new QueryClient();
 
-  await Promise.all([
-    queryClient.prefetchQuery({
+  const [story] = await Promise.all([
+    queryClient.fetchQuery({
       queryKey: ['story', storyId],
       queryFn: () =>
         getStory(process.env.API_HOST as string, storyId, sessionId),
@@ -39,16 +55,22 @@ export const loader: LoaderFunction = async ({
       queryKey: ['story', storyId, 'chapters'],
       queryFn: () =>
         allPages((limit, offset) =>
-          getChapters(process.env.API_HOST as string, storyId, sessionId, {
-            limit,
-            offset,
-          }),
+          getChapters(
+            process.env.API_HOST as string,
+            storyId,
+            {
+              limit,
+              offset,
+            },
+            sessionId,
+          ),
         ),
     }),
   ]);
 
   return {
     storyId,
+    storyTitle: story.title,
     dehydratedState: dehydrate(queryClient),
   };
 };
@@ -80,7 +102,7 @@ const View: React.FC<Props> = ({ storyId }) => {
       }
       const host = configService.get<string>('API_HOST') as string;
       return allPages((limit, offset) =>
-        getChapters(host, storyId, null, { limit, offset }),
+        getChapters(host, storyId, { limit, offset }, null),
       );
     },
   });

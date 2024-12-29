@@ -38,11 +38,11 @@ export type SortField = keyof ChapterDetails;
 
 export async function getChapter(
   host: string,
-  chapterId: string,
+  id: string,
   sessionId: string | null,
 ): Promise<ChapterDetails> {
   try {
-    const response = await fetch(`${host}/api/art/chapter/${chapterId}`, {
+    const response = await fetch(`${host}/api/art/chapter/${id}`, {
       headers: await commonToHeaders(sessionId, {}),
       credentials: 'include',
     });
@@ -55,8 +55,8 @@ export async function getChapter(
 export async function getChapters(
   host: string,
   storyId: string,
-  sessionId: string | null,
   options: QueryOptions<SortField>,
+  sessionId: string | null,
 ): Promise<Page<Chapter>> {
   try {
     const [params, headers] = await Promise.all([
@@ -76,6 +76,59 @@ export async function getChapters(
   }
 }
 
+export interface CreateChapterInput {
+  name: string;
+  markdown: string;
+}
+
+export async function createChapter(
+  host: string,
+  body: CreateChapterInput,
+  sessionId: string | null,
+): Promise<Chapter> {
+  try {
+    const headers = await commonToHeaders(sessionId, {});
+    headers.set('Content-Type', 'application/json');
+
+    const response = await fetch(`${host}/api/art/chapter`, {
+      headers,
+      credentials: 'include',
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return await handleResponse(response, ZChapter);
+  } catch (error: unknown) {
+    handleError(createChapter.name, error);
+  }
+}
+
+export interface UpdateChapterInput {
+  name?: string;
+  markdown?: string;
+}
+
+export async function updateChapter(
+  host: string,
+  id: string,
+  body: UpdateChapterInput,
+  sessionId: string | null,
+): Promise<Chapter> {
+  try {
+    const headers = await commonToHeaders(sessionId, {});
+    headers.set('Content-Type', 'application/json');
+
+    const response = await fetch(`${host}/api/art/chapter/${id}`, {
+      headers,
+      credentials: 'include',
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    return await handleResponse(response, ZChapter);
+  } catch (error: unknown) {
+    handleError(updateChapter.name, error);
+  }
+}
+
 export async function deleteChapter(
   host: string,
   id: string,
@@ -88,6 +141,6 @@ export async function deleteChapter(
       method: 'DELETE',
     });
   } catch (error: unknown) {
-    handleError(getChapters.name, error);
+    handleError(deleteChapter.name, error);
   }
 }

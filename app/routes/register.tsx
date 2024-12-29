@@ -1,6 +1,14 @@
-import { useCallback, useState } from 'react';
+import { MetaFunction } from '@remix-run/node';
+import React, { useCallback, useState } from 'react';
 
-export default function Index() {
+export const meta: MetaFunction = () => {
+  return [
+    { title: 'Henhouse Server' },
+    { name: 'description', content: 'Welcome to Henhouse!' },
+  ];
+};
+
+const Index: React.FC = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,4 +55,6 @@ export default function Index() {
       <button type="button">Search</button>
     </div>
   );
-}
+};
+
+export default Index;

@@ -19,7 +19,11 @@ import { getSessionId } from '~/api/sessionid.lib.server';
 import { Sort } from '~/api/sort.interface';
 import { useConfig } from '~/hooks/use-config';
 
-export const meta: MetaFunction = () => {
+export const meta: MetaFunction<typeof loader> = ({
+  data,
+}: {
+  data: LoaderData;
+}) => {
   return [
     { title: 'Henhouse Server' },
     { name: 'description', content: 'Welcome to Henhouse!' },
@@ -93,7 +97,7 @@ export const loader: LoaderFunction = async ({
   await queryClient.prefetchQuery({
     queryKey: ['stories', limit, offset, search],
     queryFn: () =>
-      getStories(process.env.API_HOST as string, sessionId, options),
+      getStories(process.env.API_HOST as string, options, sessionId),
   });
   return {
     dehydratedState: dehydrate(queryClient),
@@ -138,7 +142,7 @@ const View: React.FC<Props> = ({
         throw new Error('configSerive undefined');
       }
       const host = configService.get<string>('API_HOST') as string;
-      return getStories(host, null, searchOptions);
+      return getStories(host, searchOptions, null);
     },
     enabled: configService !== undefined,
   });

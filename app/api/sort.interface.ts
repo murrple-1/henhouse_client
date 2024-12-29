@@ -8,7 +8,7 @@ export class Sort<K extends string> implements Map<K, Direction> {
     this.map = new Map(entries);
 
     if (entries !== null && entries !== undefined) {
-      this._orderedKeys = entries.map(([key, _]) => key);
+      this._orderedKeys = entries.map(([key]) => key);
     } else {
       this._orderedKeys = [];
     }

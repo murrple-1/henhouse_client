@@ -9,12 +9,12 @@ import {
 import { toHeaders as commonToHeaders } from "~/api/common.interface";
 
 const ZTag = z.object({
-  uuid: z.string().uuid(),
   name: z.string(),
-  index: z.number(),
 });
 
-const ZTagDetails = ZTag.extend({});
+const ZTagDetails = ZTag.extend({
+  description: z.string(),
+});
 
 export type Tag = z.infer<typeof ZTag>;
 export type TagDetails = z.infer<typeof ZTagDetails>;

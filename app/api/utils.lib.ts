@@ -128,3 +128,21 @@ export function generateQueryString(params: QueryParams) {
     return "";
   }
 }
+
+export async function allPages<T>(
+  requestFn: (limit: number, offset: number) => Promise<Page<T>>,
+  limit = 100,
+): Promise<T[]> {
+  const firstPage = await requestFn(limit, 0);
+  const pagesCount = Math.ceil(firstPage.count / limit);
+  const items = firstPage.items;
+  const requests: Promise<Page<T>>[] = [];
+  for (let i = 1; i < pagesCount; i++) {
+    requests.push(requestFn(limit, i * limit));
+  }
+  const pages = await Promise.all(requests);
+  for (const page of pages) {
+    items.push(...page.items);
+  }
+  return items;
+}

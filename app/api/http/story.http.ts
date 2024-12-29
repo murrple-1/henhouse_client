@@ -19,7 +19,11 @@ const ZStory = z.object({
   title: z.string(),
 });
 
-const ZStoryDetails = ZStory.extend({});
+const ZStoryDetails = ZStory.extend({
+  createdAt: z.string().transform((value) => new Date(value)),
+  creator: z.string().uuid(),
+  tags: z.array(z.string()),
+});
 
 export type Story = z.infer<typeof ZStory>;
 export type StoryDetails = z.infer<typeof ZStoryDetails>;

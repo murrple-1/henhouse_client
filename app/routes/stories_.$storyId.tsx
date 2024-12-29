@@ -7,10 +7,12 @@ import {
   QueryClient,
   useQuery,
 } from "@tanstack/react-query";
-import { getChapters } from "~/api/http/chapter.http";
+import PropTypes from "prop-types";
 
+import { getChapters } from "~/api/http/chapter.http";
 import { getStory } from "~/api/http/story.http";
 import { getSessionId } from "~/api/sessionid.lib.server";
+import { allPages } from "~/api/utils.lib";
 import { useConfig } from "~/hooks/use-config";
 
 interface LoaderData {
@@ -36,7 +38,12 @@ export const loader: LoaderFunction = async ({
     queryClient.prefetchQuery({
       queryKey: ["story", storyId, "chapters"],
       queryFn: () =>
-        getChapters(process.env.API_HOST as string, storyId, sessionId),
+        allPages((limit, offset) =>
+          getChapters(process.env.API_HOST as string, storyId, sessionId, {
+            limit,
+            offset,
+          }),
+        ),
     }),
   ]);
 
@@ -55,22 +62,30 @@ const View: React.FC<Props> = ({ storyId }) => {
 
   const { data: story } = useQuery({
     queryKey: ["story", storyId],
-    queryFn: () =>
-      getStory(configService?.get<string>("API_HOST") as string, storyId, null),
+    queryFn: () => {
+      if (configService === undefined) {
+        throw new Error("configService undefined");
+      }
+      const host = configService.get<string>("API_HOST") as string;
+      return getStory(host, storyId, null);
+    },
     enabled: configService !== undefined,
   });
 
   const { data: chapters } = useQuery({
     queryKey: ["story", storyId, "chapters"],
-    queryFn: () =>
-      getChapters(
-        configService?.get<string>("API_HOST") as string,
-        storyId,
-        null,
-      ),
+    queryFn: () => {
+      if (configService === undefined) {
+        throw new Error("configService undefined");
+      }
+      const host = configService.get<string>("API_HOST") as string;
+      return allPages((limit, offset) =>
+        getChapters(host, storyId, null, { limit, offset }),
+      );
+    },
   });
 
-  const chapterElements = chapters?.items.map((chapter, index) => (
+  const chapterElements = chapters?.map((chapter, index) => (
     <div key={chapter.uuid}>
       <Link to={`/stories/${storyId}/${index}`}>{chapter.name}</Link>
     </div>
@@ -85,6 +100,10 @@ const View: React.FC<Props> = ({ storyId }) => {
       {chapterElements}
     </>
   );
+};
+
+View.propTypes = {
+  storyId: PropTypes.string.isRequired,
 };
 
 const Index: React.FC = () => {

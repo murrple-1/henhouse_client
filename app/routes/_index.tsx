@@ -133,12 +133,13 @@ const View: React.FC<Props> = ({
       searchOptions.offset,
       searchOptions.search,
     ],
-    queryFn: () =>
-      getStories(
-        configService?.get<string>("API_HOST") as string,
-        null,
-        searchOptions,
-      ),
+    queryFn: () => {
+      if (configService === undefined) {
+        throw new Error("configSerive undefined");
+      }
+      const host = configService.get<string>("API_HOST") as string;
+      return getStories(host, null, searchOptions);
+    },
     enabled: configService !== undefined,
   });
 

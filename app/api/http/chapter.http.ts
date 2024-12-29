@@ -1,18 +1,18 @@
-import { z } from "zod";
+import { z } from 'zod';
 
+import { toHeaders as commonToHeaders } from '~/api/common.interface';
 import {
+  QueryOptions,
+  toHeaders as queryToHeaders,
+  toParams as queryToParams,
+} from '~/api/query.interface';
+import {
+  Page,
   generateQueryString,
   handleError,
   handlePaginatedResponse,
   handleResponse,
-  Page,
-} from "~/api/utils.lib";
-import { toHeaders as commonToHeaders } from "~/api/common.interface";
-import {
-  QueryOptions,
-  toParams as queryToParams,
-  toHeaders as queryToHeaders,
-} from "~/api/query.interface";
+} from '~/api/utils.lib';
 
 const ZChapter = z.object({
   uuid: z.string().uuid(),
@@ -21,8 +21,12 @@ const ZChapter = z.object({
 });
 
 const ZChapterDetails = ZChapter.extend({
-  createdAt: z.string().transform((value) => new Date(value)),
-  publishedAt: z.string().transform((value) => new Date(value)),
+  createdAt: z
+    .union([z.string().datetime({ offset: true }), z.date()])
+    .transform(arg => new Date(arg)),
+  publishedAt: z
+    .union([z.string().datetime({ offset: true }), z.date()])
+    .transform(arg => new Date(arg)),
   markdown: z.string(),
   story: z.string().uuid(),
 });
@@ -40,7 +44,7 @@ export async function getChapter(
   try {
     const response = await fetch(`${host}/api/art/chapter/${chapterId}`, {
       headers: await commonToHeaders(sessionId, {}),
-      credentials: "include",
+      credentials: 'include',
     });
     return await handleResponse(response, ZChapterDetails);
   } catch (error: unknown) {
@@ -56,14 +60,14 @@ export async function getChapters(
 ): Promise<Page<Chapter>> {
   try {
     const [params, headers] = await Promise.all([
-      queryToParams(options, "stories"),
+      queryToParams(options, 'stories'),
       queryToHeaders(sessionId, options),
     ]);
     const response = await fetch(
       `${host}/api/art/story/${storyId}/chapter${generateQueryString(params)}`,
       {
         headers,
-        credentials: "include",
+        credentials: 'include',
       },
     );
     return await handlePaginatedResponse(response, ZChapter);
@@ -80,8 +84,8 @@ export async function deleteChapter(
   try {
     await fetch(`${host}/api/art/chapter/${id}`, {
       headers: await commonToHeaders(sessionId, {}),
-      credentials: "include",
-      method: "DELETE",
+      credentials: 'include',
+      method: 'DELETE',
     });
   } catch (error: unknown) {
     handleError(getChapters.name, error);

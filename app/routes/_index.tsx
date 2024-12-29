@@ -2,27 +2,27 @@ import type {
   LoaderFunction,
   LoaderFunctionArgs,
   MetaFunction,
-} from "@remix-run/node";
-import { Link, useLoaderData } from "@remix-run/react";
-
-import { getStories, SortField } from "~/api/http/story.http";
-import { QueryOptions } from "~/api/query.interface";
-import React, { useCallback, useState } from "react";
-import { getSessionId } from "~/api/sessionid.lib.server";
+} from '@remix-run/node';
+import { Link, useLoaderData } from '@remix-run/react';
 import {
-  dehydrate,
   DehydratedState,
   HydrationBoundary,
   QueryClient,
+  dehydrate,
   useQuery,
-} from "@tanstack/react-query";
-import { useConfig } from "~/hooks/use-config";
-import { Sort } from "~/api/sort.interface";
+} from '@tanstack/react-query';
+import React, { useCallback, useState } from 'react';
+
+import { SortField, getStories } from '~/api/http/story.http';
+import { QueryOptions } from '~/api/query.interface';
+import { getSessionId } from '~/api/sessionid.lib.server';
+import { Sort } from '~/api/sort.interface';
+import { useConfig } from '~/hooks/use-config';
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Henhouse Server" },
-    { name: "description", content: "Welcome to Henhouse!" },
+    { title: 'Henhouse Server' },
+    { name: 'description', content: 'Welcome to Henhouse!' },
   ];
 };
 
@@ -42,7 +42,7 @@ function generateSearchOptions(
     limit: limit ?? undefined,
     offset: offset ?? undefined,
     search,
-    sort: new Sort([["title", "ASC"]]),
+    sort: new Sort([['title', 'ASC']]),
   };
 }
 
@@ -60,9 +60,9 @@ export const loader: LoaderFunction = async ({
 
   const url = new URL(request.url);
 
-  const limitQuery = url.searchParams.get("limit");
-  const offsetQuery = url.searchParams.get("offset");
-  const searchQuery = url.searchParams.get("search");
+  const limitQuery = url.searchParams.get('limit');
+  const offsetQuery = url.searchParams.get('offset');
+  const searchQuery = url.searchParams.get('search');
 
   let limit: number | null = null;
   let offset: number | null = null;
@@ -91,7 +91,7 @@ export const loader: LoaderFunction = async ({
   const options = generateSearchOptions(limit, offset, search);
 
   await queryClient.prefetchQuery({
-    queryKey: ["stories", limit, offset, search],
+    queryKey: ['stories', limit, offset, search],
     queryFn: () =>
       getStories(process.env.API_HOST as string, sessionId, options),
   });
@@ -128,16 +128,16 @@ const View: React.FC<Props> = ({
 
   const { data: stories } = useQuery({
     queryKey: [
-      "stories",
+      'stories',
       searchOptions.limit,
       searchOptions.offset,
       searchOptions.search,
     ],
     queryFn: () => {
       if (configService === undefined) {
-        throw new Error("configSerive undefined");
+        throw new Error('configSerive undefined');
       }
-      const host = configService.get<string>("API_HOST") as string;
+      const host = configService.get<string>('API_HOST') as string;
       return getStories(host, null, searchOptions);
     },
     enabled: configService !== undefined,
@@ -179,15 +179,15 @@ const View: React.FC<Props> = ({
       <div>
         <input
           type="number"
-          value={limit !== null ? limit.toString(10) : ""}
+          value={limit !== null ? limit.toString(10) : ''}
           onChange={onLimitChange}
         />
         <input
           type="number"
-          value={offset !== null ? offset.toString(10) : ""}
+          value={offset !== null ? offset.toString(10) : ''}
           onChange={onOffsetChange}
         />
-        <input value={searchText ?? ""} onChange={onSearchTextChange} />
+        <input value={searchText ?? ''} onChange={onSearchTextChange} />
         <button type="button" onClick={onSearch}>
           Search
         </button>

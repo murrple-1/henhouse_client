@@ -6,6 +6,6 @@ export class Config {
   }
 
   getMany<T = unknown>(...keys: string[]): (T | undefined)[] {
-    return keys.map((key) => this.configJson?.[key] as T | undefined);
+    return keys.map(key => this.configJson?.[key] as T | undefined);
   }
 }

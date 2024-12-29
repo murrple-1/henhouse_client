@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export class FetchError implements Error {
   constructor(
@@ -7,7 +7,7 @@ export class FetchError implements Error {
   ) {}
 
   get name() {
-    return "FetchError";
+    return 'FetchError';
   }
 
   get message() {
@@ -24,7 +24,7 @@ export class ResponseError implements Error {
   ) {}
 
   get name() {
-    return "ResponseError";
+    return 'ResponseError';
   }
 
   get message() {
@@ -64,7 +64,7 @@ export async function handleResponse<Output, Def extends z.ZodTypeDef, Input>(
       return zSchema.parse(json) as Output;
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {
-        console.error("failed to parse:", json);
+        console.error('failed to parse:', json);
       }
       throw error;
     }
@@ -95,7 +95,7 @@ export async function handleEmptyResponse(response: Response) {
 
 // In a real app, would likely call an error logging service.
 export function handleError(context: string, error: unknown): never {
-  console.error("API call failed:", context);
+  console.error('API call failed:', context);
 
   if (error instanceof ResponseError) {
     throw error;
@@ -105,7 +105,7 @@ export function handleError(context: string, error: unknown): never {
     status: number;
     text: string;
   };
-  if (typeof error_.status === "number" && typeof error_.text === "string") {
+  if (typeof error_.status === 'number' && typeof error_.text === 'string') {
     throw new FetchError(error_.status, error_.text);
   } else {
     throw error;
@@ -120,12 +120,12 @@ export function generateQueryString(params: QueryParams) {
   if (keys.length > 0) {
     return `?${keys
       .map(
-        (k) =>
+        k =>
           `${encodeURIComponent(k)}=${encodeURIComponent(params[k] as string)}`,
       )
-      .join("&")}`;
+      .join('&')}`;
   } else {
-    return "";
+    return '';
   }
 }
 

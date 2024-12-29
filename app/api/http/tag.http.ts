@@ -1,12 +1,12 @@
-import { z } from "zod";
+import { z } from 'zod';
 
+import { toHeaders as commonToHeaders } from '~/api/common.interface';
 import {
+  Page,
   handleError,
   handlePaginatedResponse,
   handleResponse,
-  Page,
-} from "~/api/utils.lib";
-import { toHeaders as commonToHeaders } from "~/api/common.interface";
+} from '~/api/utils.lib';
 
 const ZTag = z.object({
   name: z.string(),
@@ -29,7 +29,7 @@ export async function getTag(
   try {
     const response = await fetch(`${host}/api/art/tags/${tagName}`, {
       headers: await commonToHeaders(sessionId, {}),
-      credentials: "include",
+      credentials: 'include',
     });
     return await handleResponse(response, ZTagDetails);
   } catch (error: unknown) {
@@ -44,7 +44,7 @@ export async function getTags(
   try {
     const response = await fetch(`${host}/api/art/tag`, {
       headers: await commonToHeaders(sessionId, {}),
-      credentials: "include",
+      credentials: 'include',
     });
     return await handlePaginatedResponse(response, ZTag);
   } catch (error: unknown) {

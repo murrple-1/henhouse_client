@@ -2,11 +2,11 @@
   "folders": [
     {
       "path": ".",
-      "name": "root"
-    }
+      "name": "root",
+    },
   ],
   "settings": {
     "editor.insertSpaces": true,
-    "editor.tabSize": 2
-  }
+    "editor.tabSize": 2,
+  },
 }

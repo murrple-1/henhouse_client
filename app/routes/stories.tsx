@@ -1,12 +1,12 @@
-import { LoaderFunction, LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { LoaderFunction, LoaderFunctionArgs } from '@remix-run/node';
+import { useLoaderData } from '@remix-run/react';
 import {
-  dehydrate,
   DehydratedState,
   HydrationBoundary,
   QueryClient,
-} from "@tanstack/react-query";
-import React from "react";
+  dehydrate,
+} from '@tanstack/react-query';
+import React from 'react';
 
 interface LoaderData {
   dehydratedState: DehydratedState;

@@ -1,18 +1,18 @@
-import { z } from "zod";
+import { z } from 'zod';
 
+import { toHeaders as commonToHeaders } from '~/api/common.interface';
 import {
+  QueryOptions,
+  toHeaders as queryToHeaders,
+  toParams as queryToParams,
+} from '~/api/query.interface';
+import {
+  Page,
+  generateQueryString,
   handleError,
   handlePaginatedResponse,
-  generateQueryString,
-  Page,
   handleResponse,
-} from "~/api/utils.lib";
-import {
-  toParams as queryToParams,
-  toHeaders as queryToHeaders,
-  QueryOptions,
-} from "~/api/query.interface";
-import { toHeaders as commonToHeaders } from "~/api/common.interface";
+} from '~/api/utils.lib';
 
 const ZStory = z.object({
   uuid: z.string().uuid(),
@@ -20,7 +20,9 @@ const ZStory = z.object({
 });
 
 const ZStoryDetails = ZStory.extend({
-  createdAt: z.string().transform((value) => new Date(value)),
+  createdAt: z
+    .union([z.string().datetime({ offset: true }), z.date()])
+    .transform(arg => new Date(arg)),
   creator: z.string().uuid(),
   tags: z.array(z.string()),
 });
@@ -38,7 +40,7 @@ export async function getStory(
   try {
     const response = await fetch(`${host}/api/art/story/${id}`, {
       headers: await commonToHeaders(sessionId, {}),
-      credentials: "include",
+      credentials: 'include',
     });
     return await handleResponse(response, ZStoryDetails);
   } catch (error: unknown) {
@@ -53,7 +55,7 @@ export async function getStories(
 ): Promise<Page<Story>> {
   try {
     const [params, headers] = await Promise.all([
-      queryToParams(options, "stories"),
+      queryToParams(options, 'stories'),
       queryToHeaders(sessionId, options),
     ]);
 
@@ -61,7 +63,7 @@ export async function getStories(
       `${host}/api/art/story${generateQueryString(params)}`,
       {
         headers,
-        credentials: "include",
+        credentials: 'include',
       },
     );
     return await handlePaginatedResponse(response, ZStory);

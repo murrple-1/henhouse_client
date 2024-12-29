@@ -1,8 +1,8 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState } from 'react';
 
 const Index: React.FC = () => {
-  const [usernameEmail, setUsernameEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [usernameEmail, setUsernameEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const onUsernameEmailChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

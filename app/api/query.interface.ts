@@ -1,9 +1,9 @@
 import {
   CommonOptions,
   toHeaders as commonToHeaders,
-} from "~/api/common.interface";
-import { Sort } from "~/api/sort.interface";
-import { QueryParams } from "~/api/utils.lib";
+} from '~/api/common.interface';
+import { Sort } from '~/api/sort.interface';
+import { QueryParams } from '~/api/utils.lib';
 
 export interface QueryOptions<SortField extends string> extends CommonOptions {
   limit?: number;
@@ -27,24 +27,24 @@ export async function toParams<SortField extends string>(
   const params: QueryParams = {};
 
   if (descriptor !== undefined) {
-    params["_"] = descriptor;
+    params['_'] = descriptor;
   }
 
   if (options.limit !== undefined) {
-    params["limit"] = options.limit.toString(10);
+    params['limit'] = options.limit.toString(10);
   }
 
   if (options.offset !== undefined) {
-    params["offset"] = options.offset.toString(10);
+    params['offset'] = options.offset.toString(10);
   }
 
   if (options.search !== undefined) {
-    params["search"] = options.search;
+    params['search'] = options.search;
   }
 
   if (options.sort !== undefined) {
-    if (typeof options.sort === "string") {
-      params["sort"] = options.sort;
+    if (typeof options.sort === 'string') {
+      params['sort'] = options.sort;
     } else {
       const sortParts: string[] = [];
 
@@ -52,7 +52,7 @@ export async function toParams<SortField extends string>(
         sortParts.push(`${field}:${direction}`);
       }
 
-      params["sort"] = sortParts.join(",");
+      params['sort'] = sortParts.join(',');
     }
   }
 

@@ -1,4 +1,4 @@
-import { setSessionId } from "~/api/sessionid.lib";
+import { setSessionId } from '~/api/sessionid.lib';
 
 export interface CommonOptions {}
 

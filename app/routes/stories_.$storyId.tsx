@@ -1,19 +1,19 @@
-import { LoaderFunction, LoaderFunctionArgs } from "@remix-run/node";
-import { Link, useLoaderData } from "@remix-run/react";
+import { LoaderFunction, LoaderFunctionArgs } from '@remix-run/node';
+import { Link, useLoaderData } from '@remix-run/react';
 import {
-  dehydrate,
   DehydratedState,
   HydrationBoundary,
   QueryClient,
+  dehydrate,
   useQuery,
-} from "@tanstack/react-query";
-import PropTypes from "prop-types";
+} from '@tanstack/react-query';
+import PropTypes from 'prop-types';
 
-import { getChapters } from "~/api/http/chapter.http";
-import { getStory } from "~/api/http/story.http";
-import { getSessionId } from "~/api/sessionid.lib.server";
-import { allPages } from "~/api/utils.lib";
-import { useConfig } from "~/hooks/use-config";
+import { getChapters } from '~/api/http/chapter.http';
+import { getStory } from '~/api/http/story.http';
+import { getSessionId } from '~/api/sessionid.lib.server';
+import { allPages } from '~/api/utils.lib';
+import { useConfig } from '~/hooks/use-config';
 
 interface LoaderData {
   dehydratedState: DehydratedState;
@@ -31,12 +31,12 @@ export const loader: LoaderFunction = async ({
 
   await Promise.all([
     queryClient.prefetchQuery({
-      queryKey: ["story", storyId],
+      queryKey: ['story', storyId],
       queryFn: () =>
         getStory(process.env.API_HOST as string, storyId, sessionId),
     }),
     queryClient.prefetchQuery({
-      queryKey: ["story", storyId, "chapters"],
+      queryKey: ['story', storyId, 'chapters'],
       queryFn: () =>
         allPages((limit, offset) =>
           getChapters(process.env.API_HOST as string, storyId, sessionId, {
@@ -61,24 +61,24 @@ const View: React.FC<Props> = ({ storyId }) => {
   const { data: configService } = useConfig();
 
   const { data: story } = useQuery({
-    queryKey: ["story", storyId],
+    queryKey: ['story', storyId],
     queryFn: () => {
       if (configService === undefined) {
-        throw new Error("configService undefined");
+        throw new Error('configService undefined');
       }
-      const host = configService.get<string>("API_HOST") as string;
+      const host = configService.get<string>('API_HOST') as string;
       return getStory(host, storyId, null);
     },
     enabled: configService !== undefined,
   });
 
   const { data: chapters } = useQuery({
-    queryKey: ["story", storyId, "chapters"],
+    queryKey: ['story', storyId, 'chapters'],
     queryFn: () => {
       if (configService === undefined) {
-        throw new Error("configService undefined");
+        throw new Error('configService undefined');
       }
-      const host = configService.get<string>("API_HOST") as string;
+      const host = configService.get<string>('API_HOST') as string;
       return allPages((limit, offset) =>
         getChapters(host, storyId, null, { limit, offset }),
       );

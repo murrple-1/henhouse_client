@@ -1,20 +1,20 @@
-import { LoaderFunction, LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { LoaderFunction, LoaderFunctionArgs } from '@remix-run/node';
+import { useLoaderData } from '@remix-run/react';
 import {
-  dehydrate,
   DehydratedState,
   HydrationBoundary,
   QueryClient,
+  dehydrate,
   useQuery,
-} from "@tanstack/react-query";
-import React, { useEffect } from "react";
-import { getChapter, getChapters } from "~/api/http/chapter.http";
-import { parse as markedParse } from "marked";
-import insaneSanitize from "insane";
+} from '@tanstack/react-query';
+import insaneSanitize from 'insane';
+import { parse as markedParse } from 'marked';
+import React, { useEffect } from 'react';
 
-import { getSessionId } from "~/api/sessionid.lib.server";
-import { allPages } from "~/api/utils.lib";
-import { useConfig } from "~/hooks/use-config";
+import { getChapter, getChapters } from '~/api/http/chapter.http';
+import { getSessionId } from '~/api/sessionid.lib.server';
+import { allPages } from '~/api/utils.lib';
+import { useConfig } from '~/hooks/use-config';
 
 interface LoaderData {
   dehydratedState: DehydratedState;
@@ -33,7 +33,7 @@ export const loader: LoaderFunction = async ({
   const queryClient = new QueryClient();
 
   const chapters = await queryClient.fetchQuery({
-    queryKey: ["story", storyId, "chapters"],
+    queryKey: ['story', storyId, 'chapters'],
     queryFn: () =>
       allPages((limit, offset) =>
         getChapters(process.env.API_HOST as string, storyId, sessionId, {
@@ -47,7 +47,7 @@ export const loader: LoaderFunction = async ({
 
   if (chapterId !== null) {
     await queryClient.prefetchQuery({
-      queryKey: ["chapter", chapterId],
+      queryKey: ['chapter', chapterId],
       queryFn: () =>
         getChapter(process.env.API_HOST as string, chapterId, sessionId),
     });
@@ -66,15 +66,15 @@ interface Props {
 const View: React.FC<Props> = ({ chapterId }) => {
   const { data: configService } = useConfig();
   const { data: chapter, isPending } = useQuery({
-    queryKey: ["chapter", chapterId],
+    queryKey: ['chapter', chapterId],
     queryFn: () => {
       if (configService === undefined) {
-        throw new Error("configService undefined");
+        throw new Error('configService undefined');
       }
       if (chapterId === null) {
-        throw new Error("chapterId null");
+        throw new Error('chapterId null');
       }
-      const host = configService.get<string>("API_HOST") as string;
+      const host = configService.get<string>('API_HOST') as string;
       return getChapter(host, chapterId, null);
     },
     enabled: configService !== undefined && chapterId !== null,

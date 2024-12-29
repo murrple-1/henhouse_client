@@ -1,17 +1,17 @@
+import type { LinksFunction } from '@remix-run/node';
 import {
-  isRouteErrorResponse,
   Links,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
+  isRouteErrorResponse,
   useRouteError,
-} from "@remix-run/react";
-import { useEffect, useState } from "react";
-import type { LinksFunction } from "@remix-run/node";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+} from '@remix-run/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 
-import "./tailwind.css";
+import './tailwind.css';
 
 export const links: LinksFunction = () => [];
 
@@ -50,7 +50,7 @@ export function ErrorBoundary() {
     message = error.message;
   } else {
     status = 500;
-    message = "Unknown Error";
+    message = 'Unknown Error';
   }
 
   return (

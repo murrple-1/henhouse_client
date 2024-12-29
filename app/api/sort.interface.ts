@@ -1,4 +1,4 @@
-type Direction = "ASC" | "DESC";
+type Direction = 'ASC' | 'DESC';
 
 export class Sort<K extends string> implements Map<K, Direction> {
   private map: Map<K, Direction>;
@@ -28,7 +28,7 @@ export class Sort<K extends string> implements Map<K, Direction> {
 
   set(key: K, value: Direction) {
     this.map.set(key, value);
-    this._orderedKeys = [...this._orderedKeys.filter((k) => k !== key), key];
+    this._orderedKeys = [...this._orderedKeys.filter(k => k !== key), key];
     return this;
   }
 
@@ -38,7 +38,7 @@ export class Sort<K extends string> implements Map<K, Direction> {
 
   delete(key: K) {
     const success = this.map.delete(key);
-    this._orderedKeys = this._orderedKeys.filter((k) => k !== key);
+    this._orderedKeys = this._orderedKeys.filter(k => k !== key);
     return success;
   }
 
@@ -51,14 +51,14 @@ export class Sort<K extends string> implements Map<K, Direction> {
     callbackfn: (value: Direction, key: K, map: Map<K, Direction>) => void,
     thisArg?: unknown,
   ) {
-    this._orderedKeys.forEach((k) =>
+    this._orderedKeys.forEach(k =>
       callbackfn.call(thisArg, this.map.get(k) as Direction, k, this),
     );
   }
 
   entries() {
     return this._orderedKeys
-      .map((k) => [k, this.get(k)] as [K, Direction])
+      .map(k => [k, this.get(k)] as [K, Direction])
       .values();
   }
 
@@ -67,7 +67,7 @@ export class Sort<K extends string> implements Map<K, Direction> {
   }
 
   values() {
-    return this._orderedKeys.map((k) => this.get(k) as Direction).values();
+    return this._orderedKeys.map(k => this.get(k) as Direction).values();
   }
 
   [Symbol.iterator]() {
@@ -75,6 +75,6 @@ export class Sort<K extends string> implements Map<K, Direction> {
   }
 
   get [Symbol.toStringTag]() {
-    return "Sort";
+    return 'Sort';
   }
 }

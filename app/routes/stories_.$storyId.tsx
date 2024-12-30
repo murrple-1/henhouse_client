@@ -114,13 +114,13 @@ const View: React.FC<Props> = ({ storyId }) => {
   ));
 
   if (story === undefined) {
-    return <div>Loading...</div>;
+    return <div className="container mx-auto px-4">Loading...</div>;
   }
   return (
-    <>
+    <div className="container mx-auto px-4">
       <div>{story.title}</div>
       {chapterElements}
-    </>
+    </div>
   );
 };
 

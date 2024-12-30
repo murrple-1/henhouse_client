@@ -142,11 +142,16 @@ const View: React.FC<Props> = ({ chapterId }) => {
   }, [chapter, setMarkdownHtml]);
 
   if (isPending) {
-    return <div>Loading...</div>;
+    return <div className="container mx-auto px-4">Loading...</div>;
   } else if (chapter === undefined) {
-    return <div>Error</div>;
+    return <div className="container mx-auto px-4">Error</div>;
   } else {
-    return <div dangerouslySetInnerHTML={{ __html: markdownHtml as string }} />;
+    return (
+      <div
+        className="container mx-auto px-4"
+        dangerouslySetInnerHTML={{ __html: markdownHtml as string }}
+      />
+    );
   }
 };
 

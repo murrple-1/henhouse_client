@@ -9,13 +9,15 @@ import {
   useRouteError,
 } from '@remix-run/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import React, { PropsWithChildren, useEffect, useState } from 'react';
+
+import { Header } from '~/components/header';
 
 import './tailwind.css';
 
 export const links: LinksFunction = () => [];
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export const Layout: React.FC<PropsWithChildren> = ({ children }) => {
   return (
     <html lang="en">
       <head>
@@ -31,9 +33,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </body>
     </html>
   );
-}
+};
 
-export function ErrorBoundary() {
+export const ErrorBoundary: React.FC = () => {
   const error = useRouteError();
 
   useEffect(() => {
@@ -68,9 +70,9 @@ export function ErrorBoundary() {
       </body>
     </html>
   );
-}
+};
 
-export default function App() {
+const App: React.FC = () => {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -84,7 +86,10 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <Header />
       <Outlet />
     </QueryClientProvider>
   );
-}
+};
+
+export default App;

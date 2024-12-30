@@ -8,7 +8,11 @@ export const meta: MetaFunction = () => {
 };
 
 const Index: React.FC = () => {
-  return <div>Stories/storyId/chapterNum/Edit</div>;
+  return (
+    <div className="container mx-auto px-4">
+      Stories/storyId/chapterNum/Edit
+    </div>
+  );
 };
 
 export default Index;

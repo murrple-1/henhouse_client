@@ -43,7 +43,7 @@ const Index: React.FC = () => {
   );
 
   return (
-    <div>
+    <div className="container mx-auto px-4">
       <input type="text" value={username} onChange={onUsernameChange} />
       <input type="email" value={email} onChange={onEmailChange} />
       <input type="password" value={password} onChange={onPasswordChange} />

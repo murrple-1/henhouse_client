@@ -1,6 +1,8 @@
 import { MetaFunction } from '@remix-run/node';
 import React, { useCallback, useState } from 'react';
 
+import { MainContainer } from '~/components/main-container';
+
 export const meta: MetaFunction = () => {
   return [
     { title: 'Henhouse Server' },
@@ -28,10 +30,11 @@ const Index: React.FC = () => {
 
   const onLoginClick = useCallback(() => {
     // TODO implement
+    console.log(usernameEmail, password);
   }, [usernameEmail, password]);
 
   return (
-    <div className="container mx-auto px-4">
+    <MainContainer>
       <input
         type="text"
         value={usernameEmail}
@@ -41,7 +44,7 @@ const Index: React.FC = () => {
       <button type="button" onClick={onLoginClick}>
         Login
       </button>
-    </div>
+    </MainContainer>
   );
 };
 

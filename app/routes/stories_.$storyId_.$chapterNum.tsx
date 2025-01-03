@@ -19,6 +19,7 @@ import { getChapter, getChapters } from '~/api/http/chapter.http';
 import { getStory } from '~/api/http/story.http';
 import { getSessionId } from '~/api/sessionid.lib.server';
 import { allPages } from '~/api/utils.lib';
+import { MainContainer } from '~/components/main-container';
 import { useConfig } from '~/hooks/use-config';
 
 export const meta: MetaFunction<typeof loader> = ({
@@ -142,15 +143,14 @@ const View: React.FC<Props> = ({ chapterId }) => {
   }, [chapter, setMarkdownHtml]);
 
   if (isPending) {
-    return <div className="container mx-auto px-4">Loading...</div>;
+    return <MainContainer>Loading...</MainContainer>;
   } else if (chapter === undefined) {
-    return <div className="container mx-auto px-4">Error</div>;
+    return <MainContainer>Error</MainContainer>;
   } else {
     return (
-      <div
-        className="container mx-auto px-4"
-        dangerouslySetInnerHTML={{ __html: markdownHtml as string }}
-      />
+      <MainContainer>
+        <div dangerouslySetInnerHTML={{ __html: markdownHtml as string }} />
+      </MainContainer>
     );
   }
 };

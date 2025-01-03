@@ -1,5 +1,7 @@
 import { MetaFunction } from '@remix-run/node';
 
+import { MainContainer } from '~/components/main-container';
+
 export const meta: MetaFunction = () => {
   return [
     { title: 'Henhouse Server' },
@@ -8,11 +10,7 @@ export const meta: MetaFunction = () => {
 };
 
 const Index: React.FC = () => {
-  return (
-    <div className="container mx-auto px-4">
-      Stories/storyId/chapterNum/Edit
-    </div>
-  );
+  return <MainContainer>Stories/storyId/chapterNum/Edit</MainContainer>;
 };
 
 export default Index;

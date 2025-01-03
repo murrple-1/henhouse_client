@@ -1,4 +1,7 @@
 import type { MetaFunction } from '@remix-run/node';
+import { Link } from '@remix-run/react';
+
+import { MainContainer } from '~/components/main-container';
 
 export const meta: MetaFunction = () => {
   return [
@@ -8,7 +11,14 @@ export const meta: MetaFunction = () => {
 };
 
 const View: React.FC = () => {
-  return <div className="container mx-auto px-4">Home</div>;
+  return (
+    <MainContainer>
+      <div>Home</div>
+      <div>
+        <Link to="/stories">All Stories</Link>
+      </div>
+    </MainContainer>
+  );
 };
 
 const Index: React.FC = () => {

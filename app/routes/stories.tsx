@@ -17,13 +17,12 @@ import { SortField, getStories } from '~/api/http/story.http';
 import { QueryOptions } from '~/api/query.interface';
 import { getSessionId } from '~/api/sessionid.lib.server';
 import { Sort } from '~/api/sort.interface';
+import { QueryParams, generateQueryString } from '~/api/utils.lib';
+import { MainContainer } from '~/components/main-container';
+import { Pagination } from '~/components/pagination';
 import { useConfig } from '~/hooks/use-config';
 
-export const meta: MetaFunction<typeof loader> = ({
-  data,
-}: {
-  data: LoaderData;
-}) => {
+export const meta: MetaFunction<typeof loader> = () => {
   return [
     { title: 'Henhouse Server' },
     { name: 'description', content: 'Welcome to Henhouse!' },
@@ -174,14 +173,44 @@ const View: React.FC<Props> = ({
     setSearchOptions(generateSearchOptions(limit, offset, searchText));
   }, [setSearchOptions, limit, offset, searchText]);
 
+  const toHrefFn = useCallback(
+    (offset: number, limit: number) => {
+      const params: QueryParams = {
+        'limit': limit.toString(10),
+        'offset': offset.toString(10),
+      };
+
+      if (searchText) {
+        params['search'] = searchText;
+      }
+
+      return `/stories${generateQueryString(params)}`;
+    },
+    [searchText],
+  );
+
   const storyTitleElements = stories?.items.map((s, i) => (
     <div key={`storyTitles-${i}`}>
       <Link to={`/stories/${s.uuid}`}>{s.title}</Link>
     </div>
   ));
 
+  let paginationElement: React.ReactElement | null;
+  if (stories !== undefined) {
+    paginationElement = (
+      <Pagination
+        limit={limit}
+        currentOffset={offset}
+        totalEntries={stories.count}
+        toHrefFn={toHrefFn}
+      />
+    );
+  } else {
+    paginationElement = null;
+  }
+
   return (
-    <div className="container mx-auto px-4">
+    <MainContainer>
       <div>
         <input
           type="number"
@@ -198,8 +227,9 @@ const View: React.FC<Props> = ({
           Search
         </button>
       </div>
-      {storyTitleElements}
-    </div>
+      <div>{storyTitleElements}</div>
+      <div>{paginationElement}</div>
+    </MainContainer>
   );
 };
 

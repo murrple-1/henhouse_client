@@ -1,6 +1,8 @@
 import { MetaFunction } from '@remix-run/node';
 import React, { useCallback, useState } from 'react';
 
+import { MainContainer } from '~/components/main-container';
+
 export const meta: MetaFunction = () => {
   return [
     { title: 'Henhouse Server' },
@@ -43,7 +45,7 @@ const Index: React.FC = () => {
   );
 
   return (
-    <div className="container mx-auto px-4">
+    <MainContainer>
       <input type="text" value={username} onChange={onUsernameChange} />
       <input type="email" value={email} onChange={onEmailChange} />
       <input type="password" value={password} onChange={onPasswordChange} />
@@ -53,7 +55,7 @@ const Index: React.FC = () => {
         onChange={onPasswordConfirmChange}
       />
       <button type="button">Search</button>
-    </div>
+    </MainContainer>
   );
 };
 

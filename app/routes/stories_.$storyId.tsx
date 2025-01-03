@@ -17,6 +17,7 @@ import { getChapters } from '~/api/http/chapter.http';
 import { getStory } from '~/api/http/story.http';
 import { getSessionId } from '~/api/sessionid.lib.server';
 import { allPages } from '~/api/utils.lib';
+import { MainContainer } from '~/components/main-container';
 import { useConfig } from '~/hooks/use-config';
 
 export const meta: MetaFunction<typeof loader> = ({
@@ -117,10 +118,10 @@ const View: React.FC<Props> = ({ storyId }) => {
     return <div className="container mx-auto px-4">Loading...</div>;
   }
   return (
-    <div className="container mx-auto px-4">
+    <MainContainer>
       <div>{story.title}</div>
       {chapterElements}
-    </div>
+    </MainContainer>
   );
 };
 

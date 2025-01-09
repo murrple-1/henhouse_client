@@ -34,7 +34,7 @@ export async function register(
     const headers = await commonToHeaders(null, {});
     headers.set('Content-Type', 'application/json');
 
-    const response = await fetch(`${host}/api/app_admin/register`, {
+    const response = await fetch(`${host}/api/appadmin/register`, {
       body: JSON.stringify(body),
       headers,
       method: 'POST',
@@ -56,14 +56,14 @@ export async function login(host: string, body: LoginInput): Promise<void> {
     const headers = await commonToHeaders(null, {});
     headers.set('Content-Type', 'application/json');
 
-    const response = await fetch(`${host}/api/app_admin/login`, {
+    const response = await fetch(`${host}/api/appadmin/login`, {
       body: JSON.stringify(body),
       headers,
       method: 'POST',
     });
     return await handleEmptyResponse(response);
   } catch (error: unknown) {
-    handleError(register.name, error);
+    handleError(login.name, error);
   }
 }
 
@@ -72,14 +72,14 @@ export async function logout(
   sessionId: string | null,
 ): Promise<void> {
   try {
-    const response = await fetch(`${host}/api/app_admin/logout`, {
+    const response = await fetch(`${host}/api/appadmin/logout`, {
       headers: await commonToHeaders(sessionId, {}),
       method: 'POST',
       credentials: 'include',
     });
     return await handleEmptyResponse(response);
   } catch (error: unknown) {
-    handleError(register.name, error);
+    handleError(logout.name, error);
   }
 }
 
@@ -96,7 +96,7 @@ export async function changePassword(
     const headers = await commonToHeaders(sessionId, {});
     headers.set('Content-Type', 'application/json');
 
-    const response = await fetch(`${host}/api/app_admin/user/password`, {
+    const response = await fetch(`${host}/api/appadmin/user/password`, {
       headers,
       method: 'PUT',
       body: JSON.stringify(body),
@@ -104,7 +104,7 @@ export async function changePassword(
     });
     return await handleEmptyResponse(response);
   } catch (error: unknown) {
-    handleError(register.name, error);
+    handleError(changePassword.name, error);
   }
 }
 
@@ -117,7 +117,7 @@ export async function requestPasswordReset(
     const headers = await commonToHeaders(sessionId, {});
     headers.set('Content-Type', 'application/json');
 
-    const response = await fetch(`${host}/api/app_admin/user/passwordreset`, {
+    const response = await fetch(`${host}/api/appadmin/user/passwordreset`, {
       headers,
       method: 'POST',
       body: JSON.stringify({}),
@@ -125,7 +125,7 @@ export async function requestPasswordReset(
     });
     return await handleEmptyResponse(response);
   } catch (error: unknown) {
-    handleError(register.name, error);
+    handleError(requestPasswordReset.name, error);
   }
 }
 
@@ -139,7 +139,7 @@ export async function passwordResetConfirm(
     headers.set('Content-Type', 'application/json');
 
     const response = await fetch(
-      `${host}/api/app_admin/user/passwordresetconfirm`,
+      `${host}/api/appadmin/user/passwordresetconfirm`,
       {
         headers,
         method: 'POST',
@@ -149,7 +149,7 @@ export async function passwordResetConfirm(
     );
     return await handleEmptyResponse(response);
   } catch (error: unknown) {
-    handleError(register.name, error);
+    handleError(passwordResetConfirm.name, error);
   }
 }
 
@@ -158,13 +158,13 @@ export async function getUserDetails(
   sessionId: string | null,
 ): Promise<UserDetails> {
   try {
-    const response = await fetch(`${host}/api/app_admin/user`, {
+    const response = await fetch(`${host}/api/appadmin/user`, {
       headers: await commonToHeaders(sessionId, {}),
       credentials: 'include',
     });
     return await handleResponse(response, ZUserDetails);
   } catch (error: unknown) {
-    handleError(register.name, error);
+    handleError(getUserDetails.name, error);
   }
 }
 
@@ -177,7 +177,7 @@ export async function userLookup(
     const headers = await commonToHeaders(sessionId, {});
     headers.set('Content-Type', 'application/json');
 
-    const response = await fetch(`${host}/api/app_admin/user/lookup`, {
+    const response = await fetch(`${host}/api/appadmin/user/lookup`, {
       headers,
       body: JSON.stringify(userIds),
       method: 'POST',
@@ -185,7 +185,7 @@ export async function userLookup(
     });
     return await handleResponse(response, z.array(ZUser));
   } catch (error: unknown) {
-    handleError(register.name, error);
+    handleError(userLookup.name, error);
   }
 }
 
@@ -202,7 +202,7 @@ export async function updateUserAttributes(
     const headers = await commonToHeaders(sessionId, {});
     headers.set('Content-Type', 'application/json');
 
-    const response = await fetch(`${host}/api/app_admin/user/attributes`, {
+    const response = await fetch(`${host}/api/appadmin/user/attributes`, {
       headers,
       body: JSON.stringify(body),
       method: 'PUT',
@@ -210,7 +210,7 @@ export async function updateUserAttributes(
     });
     return await handleEmptyResponse(response);
   } catch (error: unknown) {
-    handleError(register.name, error);
+    handleError(updateUserAttributes.name, error);
   }
 }
 
@@ -219,13 +219,13 @@ export async function deleteUser(
   sessionId: string | null,
 ): Promise<void> {
   try {
-    const response = await fetch(`${host}/api/app_admin/user`, {
+    const response = await fetch(`${host}/api/appadmin/user`, {
       headers: await commonToHeaders(sessionId, {}),
       method: 'DELETE',
       credentials: 'include',
     });
     return await handleEmptyResponse(response);
   } catch (error: unknown) {
-    handleError(register.name, error);
+    handleError(deleteUser.name, error);
   }
 }

@@ -18,13 +18,13 @@ const ZStory = z.object({
   uuid: z.string().uuid(),
   title: z.string(),
   synopsis: z.string(),
+  creator: z.string().uuid(),
 });
 
 const ZStoryDetails = ZStory.extend({
   createdAt: z
     .union([z.string().datetime({ offset: true }), z.date()])
     .transform(arg => new Date(arg)),
-  creator: z.string().uuid(),
   tags: z.array(z.string()),
 });
 

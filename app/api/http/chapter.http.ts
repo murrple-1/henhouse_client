@@ -17,6 +17,7 @@ import {
 const ZChapter = z.object({
   uuid: z.string().uuid(),
   name: z.string(),
+  synopsis: z.string(),
   index: z.number(),
 });
 

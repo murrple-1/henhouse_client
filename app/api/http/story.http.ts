@@ -17,6 +17,7 @@ import {
 const ZStory = z.object({
   uuid: z.string().uuid(),
   title: z.string(),
+  synopsis: z.string(),
 });
 
 const ZStoryDetails = ZStory.extend({

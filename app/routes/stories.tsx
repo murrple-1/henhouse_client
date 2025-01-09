@@ -3,7 +3,12 @@ import type {
   LoaderFunctionArgs,
   MetaFunction,
 } from '@remix-run/node';
-import { Link, useLoaderData } from '@remix-run/react';
+import {
+  Link,
+  ShouldRevalidateFunction,
+  useLoaderData,
+  useSearchParams,
+} from '@remix-run/react';
 import {
   DehydratedState,
   HydrationBoundary,
@@ -11,7 +16,7 @@ import {
   dehydrate,
   useQuery,
 } from '@tanstack/react-query';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { SortField, getStories } from '~/api/http/story.http';
 import { QueryOptions } from '~/api/query.interface';
@@ -108,6 +113,8 @@ export const loader: LoaderFunction = async ({
   };
 };
 
+export const shouldRevalidate: ShouldRevalidateFunction = () => false;
+
 interface Props {
   initialLimit: number;
   initialOffset: number;
@@ -119,47 +126,87 @@ const View: React.FC<Props> = ({
   initialOffset,
   initialSearchText,
 }) => {
-  const [limit, setLimit] = useState<number>(initialLimit);
-  const [offset, setOffset] = useState<number>(initialOffset);
-  const [searchText, setSearchText] = useState<string | null>(
-    initialSearchText,
-  );
+  const [searchParams] = useSearchParams();
 
-  const [searchOptions, setSearchOptions] = useState<QueryOptions<SortField>>(
-    () => generateSearchOptions(limit, offset, searchText),
-  );
+  const [limit, setLimit] = useState(initialLimit);
+  const [offset, setOffset] = useState(initialOffset);
+  const [searchText, setSearchText] = useState(initialSearchText);
+
+  const [currentSearchOptions, setCurrentSearchOptions] =
+    useState<QueryOptions<SortField> | null>(null);
+
+  useEffect(() => {
+    const searchParamsLimit = searchParams.get('limit');
+    let limit: number;
+    if (searchParamsLimit === null) {
+      limit = DEFAULT_LIMIT;
+    } else {
+      limit = parseInt(searchParamsLimit, 10);
+      if (isNaN(limit)) {
+        limit = DEFAULT_LIMIT;
+      }
+    }
+
+    const searchParamsOffset = searchParams.get('offset');
+    let offset: number;
+    if (searchParamsOffset === null) {
+      offset = 0;
+    } else {
+      offset = parseInt(searchParamsOffset, 10);
+      if (isNaN(offset)) {
+        offset = 0;
+      }
+    }
+
+    const searchParamsSearch = searchParams.get('search');
+    let searchText: string | null;
+    if (searchParamsSearch === null) {
+      searchText = null;
+    } else {
+      searchText = searchParamsSearch;
+    }
+
+    setLimit(limit);
+    setOffset(offset);
+    setSearchText(searchText);
+    setCurrentSearchOptions(generateSearchOptions(limit, offset, searchText));
+  }, [
+    searchParams,
+    setLimit,
+    setOffset,
+    setSearchText,
+    setCurrentSearchOptions,
+  ]);
 
   const { data: configService } = useConfig();
 
   const { data: stories } = useQuery({
     queryKey: [
       'stories',
-      searchOptions.limit,
-      searchOptions.offset,
-      searchOptions.search,
+      currentSearchOptions?.limit,
+      currentSearchOptions?.offset,
+      currentSearchOptions?.search,
     ],
     queryFn: () => {
       if (configService === undefined) {
         throw new Error('configSerive undefined');
       }
+      if (currentSearchOptions === null) {
+        throw new Error('currentSearchOptions null');
+      }
       const host = configService.get<string>('API_HOST') as string;
-      return getStories(host, searchOptions, null);
+      return getStories(host, currentSearchOptions, null);
     },
-    enabled: configService !== undefined,
+    enabled: configService !== undefined && currentSearchOptions !== null,
   });
 
   const onLimitChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setLimit(parseInt(e.target.value));
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const limit = parseInt(e.target.value, 10);
+      setLimit(limit);
+      setCurrentSearchOptions(generateSearchOptions(limit, offset, searchText));
     },
-    [setLimit],
-  );
-
-  const onOffsetChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setOffset(parseInt(e.target.value));
-    },
-    [setOffset],
+    [setLimit, offset, searchText],
   );
 
   const onSearchTextChange = useCallback(
@@ -170,8 +217,8 @@ const View: React.FC<Props> = ({
   );
 
   const onSearch = useCallback(() => {
-    setSearchOptions(generateSearchOptions(limit, offset, searchText));
-  }, [setSearchOptions, limit, offset, searchText]);
+    setCurrentSearchOptions(generateSearchOptions(limit, offset, searchText));
+  }, [setCurrentSearchOptions, limit, offset, searchText]);
 
   const toHrefFn = useCallback(
     (offset: number, limit: number) => {
@@ -197,10 +244,19 @@ const View: React.FC<Props> = ({
 
   let paginationElement: React.ReactElement | null;
   if (stories !== undefined) {
+    if (currentSearchOptions === null) {
+      throw new Error('currentSearchOptions null');
+    }
+    if (currentSearchOptions.limit === undefined) {
+      throw new Error('searchOptions.limit undefined');
+    }
+    if (currentSearchOptions.offset === undefined) {
+      throw new Error('searchOptions.offset undefined');
+    }
     paginationElement = (
       <Pagination
-        limit={limit}
-        currentOffset={offset}
+        limit={currentSearchOptions.limit}
+        currentOffset={currentSearchOptions.offset}
         totalEntries={stories.count}
         toHrefFn={toHrefFn}
       />
@@ -212,23 +268,25 @@ const View: React.FC<Props> = ({
   return (
     <MainContainer>
       <div>
-        <input
-          type="number"
-          value={limit !== null ? limit.toString(10) : ''}
-          onChange={onLimitChange}
-        />
-        <input
-          type="number"
-          value={offset !== null ? offset.toString(10) : ''}
-          onChange={onOffsetChange}
-        />
         <input value={searchText ?? ''} onChange={onSearchTextChange} />
         <button type="button" onClick={onSearch}>
           Search
         </button>
       </div>
       <div>{storyTitleElements}</div>
-      <div>{paginationElement}</div>
+      <div>
+        <select
+          onChange={onLimitChange}
+          value={
+            limit !== null ? limit.toString(10) : DEFAULT_LIMIT.toString(10)
+          }
+        >
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <div>{paginationElement}</div>
+      </div>
     </MainContainer>
   );
 };

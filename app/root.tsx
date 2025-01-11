@@ -11,7 +11,9 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { PropsWithChildren, useEffect, useState } from 'react';
 
+import { getCSRFToken } from '~/api/http/auth.http';
 import { Header } from '~/components/header';
+import { useConfig } from '~/hooks/use-config';
 
 import './tailwind.css';
 
@@ -72,6 +74,33 @@ export const ErrorBoundary: React.FC = () => {
   );
 };
 
+const InnerApp: React.FC = () => {
+  const [csrfLoaded, setCsrfLoaded] = useState(false);
+
+  const { data: configService } = useConfig();
+
+  useEffect(() => {
+    if (configService !== undefined) {
+      const host = configService.get<string>('API_HOST') as string;
+      getCSRFToken(host).then(() => {
+        setCsrfLoaded(true);
+      });
+    }
+  }, [configService, setCsrfLoaded]);
+
+  if (!csrfLoaded) {
+    // TODO loading
+    return null;
+  } else {
+    return (
+      <>
+        <Header />
+        <Outlet />
+      </>
+    );
+  }
+};
+
 const App: React.FC = () => {
   const [queryClient] = useState(
     () =>
@@ -86,8 +115,7 @@ const App: React.FC = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Header />
-      <Outlet />
+      <InnerApp />
     </QueryClientProvider>
   );
 };

@@ -1,3 +1,5 @@
+import { faBookBookmark, faBookmark } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type {
   LoaderFunction,
   LoaderFunctionArgs,
@@ -16,13 +18,14 @@ import {
   dehydrate,
   useQuery,
 } from '@tanstack/react-query';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { User, userLookup } from '~/api/http/auth.http';
 import { SortField, getStories } from '~/api/http/story.http';
 import { QueryOptions } from '~/api/query.interface';
-import { getSessionId } from '~/api/sessionid.lib.server';
+import { getSessionId } from '~/api/sessionid.lib';
 import { Sort } from '~/api/sort.interface';
-import { QueryParams, generateQueryString } from '~/api/utils.lib';
+import { Page, QueryParams, generateQueryString } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
 import { Pagination } from '~/components/pagination';
 import { useConfig } from '~/hooks/use-config';
@@ -63,10 +66,54 @@ interface LoaderData {
 
 const DEFAULT_LIMIT = 20;
 
+interface StoryWithUser {
+  uuid: string;
+  title: string;
+  synopsis: string;
+  username: string;
+  userUuid: string;
+  publishedAt: Date | null;
+}
+
+async function getStoriesWithUsers(
+  host: string,
+  options: QueryOptions<SortField>,
+  sessionId: string | null,
+) {
+  return getStories(host, options, sessionId).then(async stories => {
+    const userUuids = new Set<string>(stories.items.map(s => s.creator));
+    const users = await userLookup(host, Array.from(userUuids), sessionId);
+    const userMap: Record<string, User> = {};
+    for (const u of users) {
+      userMap[u.uuid] = u;
+    }
+    return {
+      items: stories.items.map(s_1 => {
+        const user = userMap[s_1.creator] as User;
+        return {
+          uuid: s_1.uuid,
+          title: s_1.title,
+          synopsis: s_1.synopsis,
+          username: user.username,
+          userUuid: user.uuid,
+          publishedAt: s_1.publishedAt,
+        } satisfies StoryWithUser;
+      }),
+      count: stories.count,
+    } as Page<StoryWithUser>;
+  });
+}
+
 export const loader: LoaderFunction = async ({
   request,
 }: LoaderFunctionArgs): Promise<LoaderData> => {
-  const sessionId = getSessionId(request);
+  const cookieHeader = request.headers.get('Cookie');
+  let sessionId: string | null;
+  if (cookieHeader !== null) {
+    sessionId = getSessionId(cookieHeader);
+  } else {
+    sessionId = null;
+  }
 
   const url = new URL(request.url);
 
@@ -103,7 +150,7 @@ export const loader: LoaderFunction = async ({
   await queryClient.prefetchQuery({
     queryKey: ['stories', limit, offset, search],
     queryFn: () =>
-      getStories(process.env.API_HOST as string, options, sessionId),
+      getStoriesWithUsers(process.env.API_HOST as string, options, sessionId),
   });
   return {
     dehydratedState: dehydrate(queryClient),
@@ -127,6 +174,8 @@ const View: React.FC<Props> = ({
   initialSearchText,
 }) => {
   const [searchParams] = useSearchParams();
+
+  const datetimeFormatter = useMemo(() => new Intl.DateTimeFormat(), []);
 
   const [limit, setLimit] = useState(initialLimit);
   const [offset, setOffset] = useState(initialOffset);
@@ -195,7 +244,7 @@ const View: React.FC<Props> = ({
         throw new Error('currentSearchOptions null');
       }
       const host = configService.get<string>('API_HOST') as string;
-      return getStories(host, currentSearchOptions, null);
+      return getStoriesWithUsers(host, currentSearchOptions, null);
     },
     enabled: configService !== undefined && currentSearchOptions !== null,
   });
@@ -237,8 +286,34 @@ const View: React.FC<Props> = ({
   );
 
   const storyTitleElements = stories?.items.map((s, i) => (
-    <div key={`storyTitles-${i}`}>
-      <Link to={`/stories/${s.uuid}`}>{s.title}</Link>
+    <div
+      className="mb-2 flex flex-row rounded bg-sky-100 p-2"
+      key={`storyTitles-${i}`}
+    >
+      <div className="flex flex-grow flex-col">
+        <div className="text-red-500">
+          <Link to={`/stories/${s.uuid}`}>{s.title}</Link>
+        </div>
+        <div className="">
+          <div className="text-sm">{s.synopsis}</div>
+        </div>
+        <div className="text-sm">
+          by{' '}
+          <Link to={`/user/${s.userUuid}`} className="text-red-500">
+            {s.username}
+          </Link>
+        </div>
+      </div>
+      <div className="ml-32 flex flex-col">
+        <div className="flex flex-row justify-end">
+          <FontAwesomeIcon icon={faBookmark} height="1em" />
+        </div>
+        <div className="">
+          {s.publishedAt !== null
+            ? datetimeFormatter.format(s.publishedAt)
+            : 'N/A'}
+        </div>
+      </div>
     </div>
   ));
 
@@ -273,7 +348,7 @@ const View: React.FC<Props> = ({
           Search
         </button>
       </div>
-      <div>{storyTitleElements}</div>
+      <div className="text-slate-800">{storyTitleElements}</div>
       <div>
         <select
           onChange={onLimitChange}

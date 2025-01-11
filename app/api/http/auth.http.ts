@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import { toHeaders as commonToHeaders } from '~/api/common.interface';
 import {
+  MultiEntryQueryParams,
+  generateMultiEntryQueryString,
   handleEmptyResponse,
   handleError,
   handleResponse,
@@ -29,9 +31,10 @@ export interface RegisterInput {
 export async function register(
   host: string,
   body: RegisterInput,
+  csrfToken: string,
 ): Promise<void> {
   try {
-    const headers = await commonToHeaders(null, {});
+    const headers = await commonToHeaders(csrfToken, null, {});
     headers.set('Content-Type', 'application/json');
 
     const response = await fetch(`${host}/api/appadmin/register`, {
@@ -51,9 +54,13 @@ export interface LoginInput {
   stayLoggedIn: boolean;
 }
 
-export async function login(host: string, body: LoginInput): Promise<void> {
+export async function login(
+  host: string,
+  body: LoginInput,
+  csrfToken: string,
+): Promise<void> {
   try {
-    const headers = await commonToHeaders(null, {});
+    const headers = await commonToHeaders(csrfToken, null, {});
     headers.set('Content-Type', 'application/json');
 
     const response = await fetch(`${host}/api/appadmin/login`, {
@@ -70,10 +77,11 @@ export async function login(host: string, body: LoginInput): Promise<void> {
 export async function logout(
   host: string,
   sessionId: string | null,
+  csrfToken: string,
 ): Promise<void> {
   try {
     const response = await fetch(`${host}/api/appadmin/logout`, {
-      headers: await commonToHeaders(sessionId, {}),
+      headers: await commonToHeaders(csrfToken, sessionId, {}),
       method: 'POST',
       credentials: 'include',
     });
@@ -90,10 +98,11 @@ export interface ChangePasswordInput {
 export async function changePassword(
   host: string,
   body: ChangePasswordInput,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<void> {
   try {
-    const headers = await commonToHeaders(sessionId, {});
+    const headers = await commonToHeaders(csrfToken, sessionId, {});
     headers.set('Content-Type', 'application/json');
 
     const response = await fetch(`${host}/api/appadmin/user/password`, {
@@ -110,11 +119,12 @@ export async function changePassword(
 
 export async function requestPasswordReset(
   host: string,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<void> {
   try {
     // TODO not implement server-side yet
-    const headers = await commonToHeaders(sessionId, {});
+    const headers = await commonToHeaders(csrfToken, sessionId, {});
     headers.set('Content-Type', 'application/json');
 
     const response = await fetch(`${host}/api/appadmin/user/passwordreset`, {
@@ -131,11 +141,12 @@ export async function requestPasswordReset(
 
 export async function passwordResetConfirm(
   host: string,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<void> {
   try {
     // TODO not implement server-side yet
-    const headers = await commonToHeaders(sessionId, {});
+    const headers = await commonToHeaders(csrfToken, sessionId, {});
     headers.set('Content-Type', 'application/json');
 
     const response = await fetch(
@@ -159,7 +170,7 @@ export async function getUserDetails(
 ): Promise<UserDetails> {
   try {
     const response = await fetch(`${host}/api/appadmin/user`, {
-      headers: await commonToHeaders(sessionId, {}),
+      headers: await commonToHeaders(null, sessionId, {}),
       credentials: 'include',
     });
     return await handleResponse(response, ZUserDetails);
@@ -174,15 +185,20 @@ export async function userLookup(
   sessionId: string | null,
 ): Promise<User[]> {
   try {
-    const headers = await commonToHeaders(sessionId, {});
+    const headers = await commonToHeaders(null, sessionId, {});
     headers.set('Content-Type', 'application/json');
 
-    const response = await fetch(`${host}/api/appadmin/user/lookup`, {
-      headers,
-      body: JSON.stringify(userIds),
-      method: 'POST',
-      credentials: 'include',
-    });
+    const params: MultiEntryQueryParams = {
+      userIds,
+    };
+
+    const response = await fetch(
+      `${host}/api/appadmin/user/lookup${generateMultiEntryQueryString(params)}`,
+      {
+        headers,
+        credentials: 'include',
+      },
+    );
     return await handleResponse(response, z.array(ZUser));
   } catch (error: unknown) {
     handleError(userLookup.name, error);
@@ -196,10 +212,11 @@ export interface UpdateUserAttributesInput {
 export async function updateUserAttributes(
   host: string,
   body: UpdateUserAttributesInput,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<void> {
   try {
-    const headers = await commonToHeaders(sessionId, {});
+    const headers = await commonToHeaders(csrfToken, sessionId, {});
     headers.set('Content-Type', 'application/json');
 
     const response = await fetch(`${host}/api/appadmin/user/attributes`, {
@@ -216,16 +233,28 @@ export async function updateUserAttributes(
 
 export async function deleteUser(
   host: string,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<void> {
   try {
     const response = await fetch(`${host}/api/appadmin/user`, {
-      headers: await commonToHeaders(sessionId, {}),
+      headers: await commonToHeaders(csrfToken, sessionId, {}),
       method: 'DELETE',
       credentials: 'include',
     });
     return await handleEmptyResponse(response);
   } catch (error: unknown) {
     handleError(deleteUser.name, error);
+  }
+}
+
+export async function getCSRFToken(host: string): Promise<void> {
+  try {
+    const response = await fetch(`${host}/api/appadmin/csrf`, {
+      headers: await commonToHeaders(null, null, {}),
+    });
+    return await handleEmptyResponse(response);
+  } catch (error: unknown) {
+    handleError(getCSRFToken.name, error);
   }
 }

@@ -44,7 +44,7 @@ export async function getChapter(
 ): Promise<ChapterDetails> {
   try {
     const response = await fetch(`${host}/api/art/chapter/${id}`, {
-      headers: await commonToHeaders(sessionId, {}),
+      headers: await commonToHeaders(null, sessionId, {}),
       credentials: 'include',
     });
     return await handleResponse(response, ZChapterDetails);
@@ -62,7 +62,7 @@ export async function getChapters(
   try {
     const [params, headers] = await Promise.all([
       queryToParams(options, 'stories'),
-      queryToHeaders(sessionId, options),
+      queryToHeaders(null, sessionId, options),
     ]);
     const response = await fetch(
       `${host}/api/art/story/${storyId}/chapter${generateQueryString(params)}`,
@@ -85,10 +85,11 @@ export interface CreateChapterInput {
 export async function createChapter(
   host: string,
   body: CreateChapterInput,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<Chapter> {
   try {
-    const headers = await commonToHeaders(sessionId, {});
+    const headers = await commonToHeaders(csrfToken, sessionId, {});
     headers.set('Content-Type', 'application/json');
 
     const response = await fetch(`${host}/api/art/chapter`, {
@@ -112,10 +113,11 @@ export async function updateChapter(
   host: string,
   id: string,
   body: UpdateChapterInput,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<Chapter> {
   try {
-    const headers = await commonToHeaders(sessionId, {});
+    const headers = await commonToHeaders(csrfToken, sessionId, {});
     headers.set('Content-Type', 'application/json');
 
     const response = await fetch(`${host}/api/art/chapter/${id}`, {
@@ -133,11 +135,12 @@ export async function updateChapter(
 export async function deleteChapter(
   host: string,
   id: string,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<void> {
   try {
     await fetch(`${host}/api/art/chapter/${id}`, {
-      headers: await commonToHeaders(sessionId, {}),
+      headers: await commonToHeaders(csrfToken, sessionId, {}),
       credentials: 'include',
       method: 'DELETE',
     });

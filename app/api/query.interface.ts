@@ -13,10 +13,11 @@ export interface QueryOptions<SortField extends string> extends CommonOptions {
 }
 
 export async function toHeaders<SortField extends string>(
+  csrfToken: string | null,
   sessionId: string | null,
   options: QueryOptions<SortField>,
 ) {
-  const headers = await commonToHeaders(sessionId, options);
+  const headers = await commonToHeaders(csrfToken, sessionId, options);
   return headers;
 }
 

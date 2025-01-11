@@ -1,7 +1,25 @@
-import { serialize as serializeCookie } from 'cookie';
+import { parse as parseCookie, serialize as serializeCookie } from 'cookie';
+import { serverOnly$ } from 'vite-env-only/macros';
 
-export function setSessionId(sessionId: string | null, headers: Headers) {
-  if (sessionId !== null) {
-    headers.set('Cookie', serializeCookie('sessionid', sessionId));
-  }
-}
+const getSessionId__server = serverOnly$((cookieHeader: string) => {
+  const cookie = parseCookie(cookieHeader);
+  return cookie['sessionid'] ?? null;
+});
+
+const getSessionId__client = (_: string) => {
+  return null;
+};
+
+export const getSessionId = getSessionId__server ?? getSessionId__client;
+
+const setSessionId__server = serverOnly$(
+  (sessionId: string | null, headers: Headers) => {
+    if (sessionId !== null) {
+      headers.set('Cookie', serializeCookie('sessionid', sessionId));
+    }
+  },
+);
+
+const setSessionId__client = (_: string | null, __: Headers) => {};
+
+export const setSessionId = setSessionId__server ?? setSessionId__client;

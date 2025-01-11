@@ -129,6 +129,30 @@ export function generateQueryString(params: QueryParams) {
   }
 }
 
+export type MultiEntryQueryParams = Record<string, string | string[]>;
+
+export function generateMultiEntryQueryString(params: MultiEntryQueryParams) {
+  const keys = Object.keys(params);
+
+  if (keys.length > 0) {
+    return `?${keys
+      .flatMap(k => {
+        let value = params[k] as string | string[];
+
+        if (!Array.isArray(value)) {
+          value = [value];
+        }
+
+        return value.map(
+          v => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`,
+        );
+      })
+      .join('&')}`;
+  } else {
+    return '';
+  }
+}
+
 export async function allPages<T>(
   requestFn: (limit: number, offset: number) => Promise<Page<T>>,
   limit = 100,

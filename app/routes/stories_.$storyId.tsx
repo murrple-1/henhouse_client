@@ -15,7 +15,7 @@ import PropTypes from 'prop-types';
 
 import { getChapters } from '~/api/http/chapter.http';
 import { getStory } from '~/api/http/story.http';
-import { getSessionId } from '~/api/sessionid.lib.server';
+import { getSessionId } from '~/api/sessionid.lib';
 import { allPages } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
 import { useConfig } from '~/hooks/use-config';
@@ -41,7 +41,13 @@ export const loader: LoaderFunction = async ({
   request,
   params,
 }: LoaderFunctionArgs): Promise<LoaderData> => {
-  const sessionId = getSessionId(request);
+  const cookieHeader = request.headers.get('Cookie');
+  let sessionId: string | null;
+  if (cookieHeader !== null) {
+    sessionId = getSessionId(cookieHeader);
+  } else {
+    sessionId = null;
+  }
 
   const storyId = params.storyId as string;
   const queryClient = new QueryClient();

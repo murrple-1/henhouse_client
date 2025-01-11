@@ -19,12 +19,15 @@ const ZStory = z.object({
   title: z.string(),
   synopsis: z.string(),
   creator: z.string().uuid(),
-});
-
-const ZStoryDetails = ZStory.extend({
   createdAt: z
     .union([z.string().datetime({ offset: true }), z.date()])
     .transform(arg => new Date(arg)),
+  publishedAt: z
+    .union([z.string().datetime({ offset: true }), z.date(), z.null()])
+    .transform(arg => (arg !== null ? new Date(arg) : null)),
+});
+
+const ZStoryDetails = ZStory.extend({
   tags: z.array(z.string()),
 });
 
@@ -40,7 +43,7 @@ export async function getStory(
 ): Promise<StoryDetails> {
   try {
     const response = await fetch(`${host}/api/art/story/${id}`, {
-      headers: await commonToHeaders(sessionId, {}),
+      headers: await commonToHeaders(null, sessionId, {}),
       credentials: 'include',
     });
     return await handleResponse(response, ZStoryDetails);
@@ -57,7 +60,7 @@ export async function getStories(
   try {
     const [params, headers] = await Promise.all([
       queryToParams(options, 'stories'),
-      queryToHeaders(sessionId, options),
+      queryToHeaders(null, sessionId, options),
     ]);
 
     const response = await fetch(
@@ -81,10 +84,11 @@ export interface CreateStoryInput {
 export async function createStory(
   host: string,
   body: CreateStoryInput,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<Story> {
   try {
-    const headers = await commonToHeaders(sessionId, {});
+    const headers = await commonToHeaders(csrfToken, sessionId, {});
     headers.set('Content-Type', 'application/json');
 
     const response = await fetch(`${host}/api/art/story`, {
@@ -108,10 +112,11 @@ export async function updateStory(
   host: string,
   id: string,
   body: UpdateStoryInput,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<Story> {
   try {
-    const headers = await commonToHeaders(sessionId, {});
+    const headers = await commonToHeaders(csrfToken, sessionId, {});
     headers.set('Content-Type', 'application/json');
 
     const response = await fetch(`${host}/api/art/story/${id}`, {
@@ -129,12 +134,13 @@ export async function updateStory(
 export async function deleteStory(
   host: string,
   id: string,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<void> {
   try {
     await fetch(`${host}/api/art/story/${id}`, {
       method: 'DELETE',
-      headers: await commonToHeaders(sessionId, {}),
+      headers: await commonToHeaders(csrfToken, sessionId, {}),
       credentials: 'include',
     });
   } catch (error: unknown) {

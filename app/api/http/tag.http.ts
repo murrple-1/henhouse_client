@@ -30,11 +30,12 @@ export type SortField = keyof TagDetails;
 export async function getTag(
   host: string,
   tagName: string,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<TagDetails> {
   try {
     const response = await fetch(`${host}/api/art/tags/${tagName}`, {
-      headers: await commonToHeaders(sessionId, {}),
+      headers: await commonToHeaders(csrfToken, sessionId, {}),
       credentials: 'include',
     });
     return await handleResponse(response, ZTagDetails);
@@ -46,11 +47,12 @@ export async function getTag(
 export async function getTags(
   host: string,
   options: QueryOptions<SortField>,
+  csrfToken: string,
   sessionId: string | null,
 ): Promise<Page<Tag>> {
   try {
     const [headers, params] = await Promise.all([
-      queryToHeaders(sessionId, options),
+      queryToHeaders(csrfToken, sessionId, options),
       queryToParams(options, 'tags'),
     ]);
 

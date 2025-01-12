@@ -108,8 +108,8 @@ export const Pagination: React.FC<Props> = memo(
       );
 
     return (
-      <div className="flex items-center justify-center pt-4">
-        <div className="flex w-full items-center justify-between border-t border-gray-200">
+      <div className="flex items-center justify-center">
+        <div className="flex w-full items-center justify-between">
           <div className="flex items-center">{previousElement}</div>
           <div className="flex items-center">{pageLinks}</div>
           <div className="flex items-center">{nextElement}</div>

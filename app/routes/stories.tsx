@@ -1,4 +1,8 @@
-import { faBookBookmark, faBookmark } from '@fortawesome/free-solid-svg-icons';
+import {
+  faBookmark,
+  faGear,
+  faMagnifyingGlass,
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type {
   LoaderFunction,
@@ -356,25 +360,42 @@ const View: React.FC<Props> = ({
 
   return (
     <MainContainer>
-      <div>
-        <input value={searchText ?? ''} onChange={onSearchTextChange} />
-        <button type="button" onClick={onSearch}>
-          Search
+      <div className="mb-2 flex w-1/2 flex-row border-2 border-slate-700">
+        <input
+          value={searchText ?? ''}
+          onChange={onSearchTextChange}
+          className="flex-grow focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={onSearch}
+          className="border-l border-white bg-red-500 px-2"
+        >
+          <FontAwesomeIcon icon={faMagnifyingGlass} height="1em" />
         </button>
+        <Link
+          to="/stories/search"
+          className="border-l border-white bg-red-500 px-1"
+        >
+          <FontAwesomeIcon icon={faGear} height="1em" />
+        </Link>
       </div>
       <div className="text-slate-800">{storyTitleElements}</div>
-      <div>
-        <select
-          onChange={onLimitChange}
-          value={
-            limit !== null ? limit.toString(10) : DEFAULT_LIMIT.toString(10)
-          }
-        >
-          <option value="25">25</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
-        </select>
-        <div>{paginationElement}</div>
+      <div className="mt-3 flex flex-row border-t border-gray-200 pt-1">
+        <div className="mr-2 flex flex-row items-end">
+          <select
+            onChange={onLimitChange}
+            value={
+              limit !== null ? limit.toString(10) : DEFAULT_LIMIT.toString(10)
+            }
+            className="border border-slate-700 p-1"
+          >
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+        {paginationElement}
       </div>
     </MainContainer>
   );

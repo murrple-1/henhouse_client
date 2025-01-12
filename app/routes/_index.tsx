@@ -15,6 +15,9 @@ const View: React.FC = () => {
     <MainContainer>
       <div>Home</div>
       <div>
+        <Link to="/stories/search">Story Search</Link>
+      </div>
+      <div>
         <Link to="/stories">All Stories</Link>
       </div>
     </MainContainer>

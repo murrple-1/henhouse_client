@@ -13,6 +13,7 @@ import {
 } from '@tanstack/react-query';
 import PropTypes from 'prop-types';
 
+import { getStoryWithUser } from '~/api/facade/story-with-user.http';
 import { getChapters } from '~/api/http/chapter.http';
 import { getStory } from '~/api/http/story.http';
 import { getSessionId } from '~/api/sessionid.lib';
@@ -54,9 +55,9 @@ export const loader: LoaderFunction = async ({
 
   const [story] = await Promise.all([
     queryClient.fetchQuery({
-      queryKey: ['story', storyId],
+      queryKey: ['story:withUser', storyId],
       queryFn: () =>
-        getStory(process.env.API_HOST as string, storyId, sessionId),
+        getStoryWithUser(process.env.API_HOST as string, storyId, sessionId),
     }),
     queryClient.prefetchQuery({
       queryKey: ['story', storyId, 'chapters'],
@@ -90,13 +91,13 @@ const View: React.FC<Props> = ({ storyId }) => {
   const { data: configService } = useConfig();
 
   const { data: story } = useQuery({
-    queryKey: ['story', storyId],
+    queryKey: ['story:withUser', storyId],
     queryFn: () => {
       if (configService === undefined) {
         throw new Error('configService undefined');
       }
       const host = configService.get<string>('API_HOST') as string;
-      return getStory(host, storyId, null);
+      return getStoryWithUser(host, storyId, null);
     },
     enabled: configService !== undefined,
   });
@@ -112,21 +113,44 @@ const View: React.FC<Props> = ({ storyId }) => {
         getChapters(host, storyId, { limit, offset }, null),
       );
     },
+    enabled: configService !== undefined,
   });
 
   const chapterElements = chapters?.map((chapter, index) => (
-    <div key={chapter.uuid}>
-      <Link to={`/stories/${storyId}/${index}`}>{chapter.name}</Link>
+    <div
+      key={chapter.uuid}
+      className="mb-2 flex w-full flex-row rounded bg-sky-100 p-2"
+    >
+      <div className="flex flex-col">
+        <div>
+          <Link to={`/stories/${storyId}/${index}`} className="text-red-500">
+            {chapter.name}
+          </Link>
+        </div>
+        <div className="text-sm">
+          {chapter.synopsis !== '' ? chapter.synopsis : story?.synopsis}
+        </div>
+      </div>
     </div>
   ));
 
   if (story === undefined) {
-    return <div className="container mx-auto px-4">Loading...</div>;
+    return <MainContainer>Loading...</MainContainer>;
   }
+
   return (
     <MainContainer>
-      <div>{story.title}</div>
-      {chapterElements}
+      <h1 className="mb-2 text-lg">{story.title}</h1>
+      <div className="mb-2">
+        by{' '}
+        <Link to={`/user/${story.userUuid}`} className="text-red-500">
+          {story.username}
+        </Link>
+      </div>
+      <div className="mb-2">{story.synopsis}</div>
+      <div className="h-1 w-full bg-slate-700" />
+      <div className="mb-4 mt-2 text-lg">Chapters</div>
+      <div className="w-full text-slate-800">{chapterElements}</div>
     </MainContainer>
   );
 };

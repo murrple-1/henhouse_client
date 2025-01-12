@@ -24,6 +24,10 @@ import {
 } from '@tanstack/react-query';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
+import {
+  StoryWithUser,
+  getStoriesWithUsers,
+} from '~/api/facade/story-with-user.http';
 import { User, userLookup } from '~/api/http/auth.http';
 import { SortField, getStories } from '~/api/http/story.http';
 import { QueryOptions } from '~/api/query.interface';
@@ -70,44 +74,6 @@ interface LoaderData {
 
 const DEFAULT_LIMIT = 20;
 
-interface StoryWithUser {
-  uuid: string;
-  title: string;
-  synopsis: string;
-  username: string;
-  userUuid: string;
-  publishedAt: Date | null;
-}
-
-async function getStoriesWithUsers(
-  host: string,
-  options: QueryOptions<SortField>,
-  sessionId: string | null,
-) {
-  return getStories(host, options, sessionId).then(async stories => {
-    const userUuids = new Set<string>(stories.items.map(s => s.creator));
-    const users = await userLookup(host, Array.from(userUuids), sessionId);
-    const userMap: Record<string, User> = {};
-    for (const u of users) {
-      userMap[u.uuid] = u;
-    }
-    return {
-      items: stories.items.map(s_1 => {
-        const user = userMap[s_1.creator] as User;
-        return {
-          uuid: s_1.uuid,
-          title: s_1.title,
-          synopsis: s_1.synopsis,
-          username: user.username,
-          userUuid: user.uuid,
-          publishedAt: s_1.publishedAt,
-        } satisfies StoryWithUser;
-      }),
-      count: stories.count,
-    } as Page<StoryWithUser>;
-  });
-}
-
 export const loader: LoaderFunction = async ({
   request,
 }: LoaderFunctionArgs): Promise<LoaderData> => {
@@ -152,7 +118,7 @@ export const loader: LoaderFunction = async ({
   const options = generateSearchOptions(limit, offset, search);
 
   await queryClient.prefetchQuery({
-    queryKey: ['stories', limit, offset, search],
+    queryKey: ['stories:withUsers', limit, offset, search],
     queryFn: () =>
       getStoriesWithUsers(process.env.API_HOST as string, options, sessionId),
   });
@@ -174,7 +140,7 @@ interface StoryCardProps {
 const StoryCard: React.FC<StoryCardProps> = memo(
   ({ storyWithUser: s, datetimeFormatter }) => {
     return (
-      <div className="mb-2 flex flex-row rounded bg-sky-100 p-2">
+      <div className="mb-2 flex w-full flex-row rounded bg-sky-100 p-2">
         <div className="flex flex-grow flex-col">
           <div className="text-red-500">
             <Link to={`/stories/${s.uuid}`}>{s.title}</Link>
@@ -273,7 +239,7 @@ const View: React.FC<Props> = ({
 
   const { data: stories } = useQuery({
     queryKey: [
-      'stories',
+      'stories:withUsers',
       currentSearchOptions?.limit,
       currentSearchOptions?.offset,
       currentSearchOptions?.search,
@@ -380,7 +346,7 @@ const View: React.FC<Props> = ({
           <FontAwesomeIcon icon={faGear} height="1em" />
         </Link>
       </div>
-      <div className="text-slate-800">{storyTitleElements}</div>
+      <div className="w-full text-slate-800">{storyTitleElements}</div>
       <div className="mt-3 flex flex-row border-t border-gray-200 pt-1">
         <div className="mr-2 flex flex-row items-end">
           <select

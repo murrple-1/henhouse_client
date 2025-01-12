@@ -18,7 +18,7 @@ import {
   dehydrate,
   useQuery,
 } from '@tanstack/react-query';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { User, userLookup } from '~/api/http/auth.http';
 import { SortField, getStories } from '~/api/http/story.http';
@@ -162,6 +162,44 @@ export const loader: LoaderFunction = async ({
 
 export const shouldRevalidate: ShouldRevalidateFunction = () => false;
 
+interface StoryCardProps {
+  storyWithUser: StoryWithUser;
+  datetimeFormatter: Intl.DateTimeFormat;
+}
+
+const StoryCard: React.FC<StoryCardProps> = memo(
+  ({ storyWithUser: s, datetimeFormatter }) => {
+    return (
+      <div className="mb-2 flex flex-row rounded bg-sky-100 p-2">
+        <div className="flex flex-grow flex-col">
+          <div className="text-red-500">
+            <Link to={`/stories/${s.uuid}`}>{s.title}</Link>
+          </div>
+          <div className="">
+            <div className="text-sm">{s.synopsis}</div>
+          </div>
+          <div className="text-sm">
+            by{' '}
+            <Link to={`/user/${s.userUuid}`} className="text-red-500">
+              {s.username}
+            </Link>
+          </div>
+        </div>
+        <div className="ml-32 flex flex-col">
+          <div className="flex flex-row justify-end">
+            <FontAwesomeIcon icon={faBookmark} height="1em" />
+          </div>
+          <div className="">
+            {s.publishedAt !== null
+              ? datetimeFormatter.format(s.publishedAt)
+              : 'N/A'}
+          </div>
+        </div>
+      </div>
+    );
+  },
+);
+
 interface Props {
   initialLimit: number;
   initialOffset: number;
@@ -286,35 +324,11 @@ const View: React.FC<Props> = ({
   );
 
   const storyTitleElements = stories?.items.map((s, i) => (
-    <div
-      className="mb-2 flex flex-row rounded bg-sky-100 p-2"
+    <StoryCard
       key={`storyTitles-${i}`}
-    >
-      <div className="flex flex-grow flex-col">
-        <div className="text-red-500">
-          <Link to={`/stories/${s.uuid}`}>{s.title}</Link>
-        </div>
-        <div className="">
-          <div className="text-sm">{s.synopsis}</div>
-        </div>
-        <div className="text-sm">
-          by{' '}
-          <Link to={`/user/${s.userUuid}`} className="text-red-500">
-            {s.username}
-          </Link>
-        </div>
-      </div>
-      <div className="ml-32 flex flex-col">
-        <div className="flex flex-row justify-end">
-          <FontAwesomeIcon icon={faBookmark} height="1em" />
-        </div>
-        <div className="">
-          {s.publishedAt !== null
-            ? datetimeFormatter.format(s.publishedAt)
-            : 'N/A'}
-        </div>
-      </div>
-    </div>
+      storyWithUser={s}
+      datetimeFormatter={datetimeFormatter}
+    />
   ));
 
   let paginationElement: React.ReactElement | null;

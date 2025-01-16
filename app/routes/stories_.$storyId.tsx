@@ -15,7 +15,6 @@ import PropTypes from 'prop-types';
 
 import { getStoryWithUser } from '~/api/facade/story-with-user.http';
 import { getChapters } from '~/api/http/chapter.http';
-import { getStory } from '~/api/http/story.http';
 import { getSessionId } from '~/api/sessionid.lib';
 import { allPages } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';

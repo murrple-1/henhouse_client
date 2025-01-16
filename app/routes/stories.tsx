@@ -28,12 +28,11 @@ import {
   StoryWithUser,
   getStoriesWithUsers,
 } from '~/api/facade/story-with-user.http';
-import { User, userLookup } from '~/api/http/auth.http';
-import { SortField, getStories } from '~/api/http/story.http';
+import { SortField } from '~/api/http/story.http';
 import { QueryOptions } from '~/api/query.interface';
 import { getSessionId } from '~/api/sessionid.lib';
 import { Sort } from '~/api/sort.interface';
-import { Page, QueryParams, generateQueryString } from '~/api/utils.lib';
+import { QueryParams, generateQueryString } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
 import { Pagination } from '~/components/pagination';
 import { useConfig } from '~/hooks/use-config';

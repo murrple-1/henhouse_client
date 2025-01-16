@@ -1,9 +1,11 @@
+import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   LoaderFunction,
   LoaderFunctionArgs,
   MetaFunction,
 } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
+import { Link, useLoaderData } from '@remix-run/react';
 import {
   DehydratedState,
   HydrationBoundary,
@@ -15,8 +17,8 @@ import insaneSanitize from 'insane';
 import { parse as markedParse } from 'marked';
 import React, { useEffect } from 'react';
 
+import { getStoryWithUser } from '~/api/facade/story-with-user.http';
 import { getChapter, getChapters } from '~/api/http/chapter.http';
-import { getStory } from '~/api/http/story.http';
 import { getSessionId } from '~/api/sessionid.lib';
 import { allPages } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
@@ -35,9 +37,12 @@ export const meta: MetaFunction<typeof loader> = ({
 
 interface LoaderData {
   dehydratedState: DehydratedState;
+  storyId: string;
   chapterId: string | null;
   storyTitle: string | null;
   chapterName: string | null;
+  chapterNumber: number;
+  totalChapters: number;
 }
 
 export const loader: LoaderFunction = async ({
@@ -53,15 +58,15 @@ export const loader: LoaderFunction = async ({
   }
 
   const storyId = params.storyId as string;
-  const chapterNum = parseInt(params.chapterNum as string, 10);
+  const chapterNumber = parseInt(params.chapterNum as string, 10);
 
   const queryClient = new QueryClient();
 
   const [story, chapters] = await Promise.all([
     queryClient.fetchQuery({
-      queryKey: ['story', storyId],
+      queryKey: ['story:withUser', storyId],
       queryFn: () =>
-        getStory(process.env.API_HOST as string, storyId, sessionId),
+        getStoryWithUser(process.env.API_HOST as string, storyId, sessionId),
     }),
     queryClient.fetchQuery({
       queryKey: ['story', storyId, 'chapters'],
@@ -80,7 +85,7 @@ export const loader: LoaderFunction = async ({
     }),
   ]);
 
-  const chapterId = chapters[chapterNum]?.uuid ?? null;
+  const chapterId = chapters[chapterNumber]?.uuid ?? null;
 
   let chapterName: string | null = null;
   if (chapterId !== null) {
@@ -97,16 +102,39 @@ export const loader: LoaderFunction = async ({
     chapterId,
     storyTitle: story.title,
     chapterName,
+    storyId,
+    chapterNumber,
+    totalChapters: chapters.length,
   };
 };
 
 interface Props {
+  storyId: string;
   chapterId: string | null;
+  chapterNumber: number;
+  totalChapters: number;
 }
 
-const View: React.FC<Props> = ({ chapterId }) => {
+const View: React.FC<Props> = ({
+  chapterId,
+  storyId,
+  chapterNumber,
+  totalChapters,
+}) => {
   const { data: configService } = useConfig();
-  const { data: chapter, isPending } = useQuery({
+  const { data: story, isPending: storyIsPending } = useQuery({
+    queryKey: ['story:withUser', storyId],
+    queryFn: () => {
+      if (configService === undefined) {
+        throw new Error('configService undefined');
+      }
+      const host = configService.get<string>('API_HOST') as string;
+      return getStoryWithUser(host, storyId, null);
+    },
+    enabled: configService !== undefined && chapterId !== null,
+  });
+
+  const { data: chapter, isPending: chpaterIsPending } = useQuery({
     queryKey: ['chapter', chapterId],
     queryFn: () => {
       if (configService === undefined) {
@@ -148,24 +176,74 @@ const View: React.FC<Props> = ({ chapterId }) => {
     };
   }, [chapter, setMarkdownHtml]);
 
-  if (isPending) {
+  let nextElement: React.ReactElement | null;
+  if (chapterNumber < totalChapters - 1) {
+    nextElement = (
+      <Link
+        to={`/stories/${storyId}/${chapterNumber + 1}`}
+        className="ml-2 text-red-500"
+      >
+        <FontAwesomeIcon icon={faArrowRight} />
+      </Link>
+    );
+  } else {
+    nextElement = null;
+  }
+
+  let previousElement: React.ReactElement | null;
+  if (chapterNumber > 0) {
+    previousElement = (
+      <Link
+        to={`/stories/${storyId}/${chapterNumber - 1}`}
+        className="mr-2 text-red-500"
+      >
+        <FontAwesomeIcon icon={faArrowLeft} />
+      </Link>
+    );
+  } else {
+    previousElement = null;
+  }
+
+  if (storyIsPending || chpaterIsPending) {
     return <MainContainer>Loading...</MainContainer>;
-  } else if (chapter === undefined) {
+  } else if (
+    story === undefined ||
+    chapter === undefined ||
+    markdownHtml === null
+  ) {
     return <MainContainer>Error</MainContainer>;
   } else {
     return (
       <MainContainer>
-        <div dangerouslySetInnerHTML={{ __html: markdownHtml as string }} />
+        <h1 className="mb-2 text-lg">{story.title}</h1>
+        <div className="mb-2">
+          by{' '}
+          <Link to={`/user/${story.userUuid}`} className="text-red-500">
+            {story.username}
+          </Link>
+        </div>
+        <div className="flex flex-row justify-center">
+          {previousElement}
+          <div>{chapter.name}</div>
+          {nextElement}
+        </div>
+        <div dangerouslySetInnerHTML={{ __html: markdownHtml }} />
       </MainContainer>
     );
   }
 };
 
 export default function Index() {
-  const { dehydratedState, chapterId } = useLoaderData<LoaderData>();
+  const { dehydratedState, chapterId, storyId, chapterNumber, totalChapters } =
+    useLoaderData<LoaderData>();
   return (
     <HydrationBoundary state={dehydratedState}>
-      <View chapterId={chapterId} />
+      <View
+        chapterId={chapterId}
+        storyId={storyId}
+        chapterNumber={chapterNumber}
+        totalChapters={totalChapters}
+      />
     </HydrationBoundary>
   );
 }

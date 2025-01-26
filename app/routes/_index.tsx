@@ -1,7 +1,22 @@
-import type { MetaFunction } from '@remix-run/node';
-import { Link } from '@remix-run/react';
+import type {
+  LoaderFunction,
+  LoaderFunctionArgs,
+  MetaFunction,
+} from '@remix-run/node';
+import { Link, useLoaderData } from '@remix-run/react';
+import {
+  DehydratedState,
+  HydrationBoundary,
+  QueryClient,
+  dehydrate,
+  useQuery,
+} from '@tanstack/react-query';
 
+import { getCategories } from '~/api/http/category.http';
+import { getSessionId } from '~/api/sessionid.lib';
+import { allPages } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
+import { useConfig } from '~/hooks/use-config';
 
 export const meta: MetaFunction = () => {
   return [
@@ -10,9 +25,39 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-interface Category {
-  name: string;
+interface LoaderData {
+  dehydratedState: DehydratedState;
 }
+
+export const loader: LoaderFunction = async ({
+  request,
+}: LoaderFunctionArgs): Promise<LoaderData> => {
+  const cookieHeader = request.headers.get('Cookie');
+  let sessionId: string | null;
+  if (cookieHeader !== null) {
+    sessionId = getSessionId(cookieHeader);
+  } else {
+    sessionId = null;
+  }
+
+  const queryClient = new QueryClient();
+
+  await queryClient.prefetchQuery({
+    queryKey: ['categories'],
+    queryFn: () =>
+      allPages((limit, offset) =>
+        getCategories(
+          process.env.API_HOST as string,
+          { limit, offset },
+          sessionId,
+        ),
+      ),
+  });
+
+  return {
+    dehydratedState: dehydrate(queryClient),
+  };
+};
 
 const categoryGridStyle: React.CSSProperties = {
   gridTemplateColumns: 'repeat(auto-fill, minmax(25%, 1fr))',
@@ -21,25 +66,27 @@ const categoryGridStyle: React.CSSProperties = {
 };
 
 const View: React.FC = () => {
-  const categories: Category[] = [
-    {
-      name: 'Sci-fi',
-    },
-    {
-      name: 'Fantasy',
-    },
-    {
-      name: 'True Crime',
-    },
-    {
-      name: 'Mystery',
-    },
-  ];
+  const { data: configService } = useConfig();
 
-  const categoryElements = categories.map((c, i) => (
-    <div className="rounded bg-sky-100 p-2 text-center">
-      <Link to={``} className="text-red-500">
-        {c.name}
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () =>
+      allPages((limit, offset) =>
+        getCategories(process.env.API_HOST as string, { limit, offset }, null),
+      ),
+    enabled: configService !== undefined,
+  });
+
+  const categoryElements = categories?.map((category, index) => (
+    <div
+      key={`categoryElements-${index}`}
+      className="rounded bg-sky-100 p-2 text-center"
+    >
+      <Link
+        to={`/stories?categorySearch=${category.name}`}
+        className="text-red-500"
+      >
+        {category.prettyName}
       </Link>
     </div>
   ));
@@ -85,7 +132,13 @@ const View: React.FC = () => {
 };
 
 const Index: React.FC = () => {
-  return <View />;
+  const { dehydratedState } = useLoaderData<LoaderData>();
+
+  return (
+    <HydrationBoundary state={dehydratedState}>
+      <View />
+    </HydrationBoundary>
+  );
 };
 
 export default Index;

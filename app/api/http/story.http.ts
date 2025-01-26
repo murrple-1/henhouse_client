@@ -59,7 +59,7 @@ export async function getStories(
 ): Promise<Page<Story>> {
   try {
     const [params, headers] = await Promise.all([
-      queryToParams(options, 'stories'),
+      queryToParams(options, 'story'),
       queryToHeaders(null, sessionId, options),
     ]);
 

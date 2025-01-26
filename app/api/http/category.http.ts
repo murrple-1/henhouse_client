@@ -14,54 +14,54 @@ import {
   handleResponse,
 } from '~/api/utils.lib';
 
-const ZTag = z.object({
+const ZCategory = z.object({
   name: z.string(),
   prettyName: z.string(),
 });
 
-const ZTagDetails = ZTag.extend({});
+const ZCategoryDetails = ZCategory.extend({});
 
-export type Tag = z.infer<typeof ZTag>;
-export type TagDetails = z.infer<typeof ZTagDetails>;
+export type Category = z.infer<typeof ZCategory>;
+export type CategoryDetails = z.infer<typeof ZCategoryDetails>;
 
-export type SortField = keyof TagDetails;
+export type SortField = keyof CategoryDetails;
 
-export async function getTag(
+export async function getCategory(
   host: string,
   tagName: string,
   sessionId: string | null,
-): Promise<TagDetails> {
+): Promise<CategoryDetails> {
   try {
     const response = await fetch(`${host}/api/art/tags/${tagName}`, {
       headers: await commonToHeaders(null, sessionId, {}),
       credentials: 'include',
     });
-    return await handleResponse(response, ZTagDetails);
+    return await handleResponse(response, ZCategoryDetails);
   } catch (error: unknown) {
-    handleError(getTag.name, error);
+    handleError(getCategory.name, error);
   }
 }
 
-export async function getTags(
+export async function getCategories(
   host: string,
   options: QueryOptions<SortField>,
   sessionId: string | null,
-): Promise<Page<Tag>> {
+): Promise<Page<Category>> {
   try {
     const [headers, params] = await Promise.all([
       queryToHeaders(null, sessionId, options),
-      queryToParams(options, 'tag'),
+      queryToParams(options, 'category'),
     ]);
 
     const response = await fetch(
-      `${host}/api/art/tag${generateQueryString(params)}`,
+      `${host}/api/art/category${generateQueryString(params)}`,
       {
         headers,
         credentials: 'include',
       },
     );
-    return await handlePaginatedResponse(response, ZTag);
+    return await handlePaginatedResponse(response, ZCategory);
   } catch (error: unknown) {
-    handleError(getTags.name, error);
+    handleError(getCategories.name, error);
   }
 }

@@ -17,6 +17,7 @@ import {
 const ZCategory = z.object({
   name: z.string(),
   prettyName: z.string(),
+  description: z.string(),
 });
 
 const ZCategoryDetails = ZCategory.extend({});

@@ -48,13 +48,18 @@ function generateSearchOptions(
   limit: number | null,
   offset: number | null,
   searchText: string | null,
+  searchCategory: string | null,
 ): QueryOptions<SortField> {
-  let search: string | undefined;
+  const searchParts: string[] = [];
   if (searchText) {
-    search = `title:"${searchText}"`;
-  } else {
-    search = undefined;
+    searchParts.push(`title:"${searchText}"`);
   }
+
+  if (searchCategory) {
+    searchParts.push(`category:"${searchCategory}"`);
+  }
+
+  const search = searchParts.length > 0 ? searchParts.join(' AND ') : undefined;
 
   return {
     limit: limit ?? undefined,
@@ -68,7 +73,8 @@ interface LoaderData {
   dehydratedState: DehydratedState;
   limit: number;
   offset: number;
-  search: string | null;
+  searchText: string | null;
+  searchCategory: string | null;
 }
 
 const DEFAULT_LIMIT = 20;
@@ -88,11 +94,13 @@ export const loader: LoaderFunction = async ({
 
   const limitQuery = url.searchParams.get('limit');
   const offsetQuery = url.searchParams.get('offset');
-  const searchQuery = url.searchParams.get('search');
+  const searchTextQuery = url.searchParams.get('search');
+  const searchCategoryQuery = url.searchParams.get('category');
 
   let limit: number = DEFAULT_LIMIT;
   let offset: number = 0;
-  let search: string | null = null;
+  let searchText: string | null = null;
+  let searchCategory: string | null = null;
 
   if (limitQuery !== null) {
     limit = parseInt(limitQuery, 10);
@@ -108,16 +116,25 @@ export const loader: LoaderFunction = async ({
     }
   }
 
-  if (searchQuery !== null) {
-    search = searchQuery;
+  if (searchTextQuery !== null) {
+    searchText = searchTextQuery;
+  }
+
+  if (searchCategoryQuery !== null) {
+    searchCategory = searchCategoryQuery;
   }
 
   const queryClient = new QueryClient();
 
-  const options = generateSearchOptions(limit, offset, search);
+  const options = generateSearchOptions(
+    limit,
+    offset,
+    searchText,
+    searchCategory,
+  );
 
   await queryClient.prefetchQuery({
-    queryKey: ['stories:withUsers', limit, offset, search],
+    queryKey: ['stories:withUsers', limit, offset, searchText, searchCategory],
     queryFn: () =>
       getStoriesWithUsers(process.env.API_HOST as string, options, sessionId),
   });
@@ -125,7 +142,8 @@ export const loader: LoaderFunction = async ({
     dehydratedState: dehydrate(queryClient),
     limit,
     offset,
-    search,
+    searchText,
+    searchCategory,
   };
 };
 
@@ -173,12 +191,14 @@ interface Props {
   initialLimit: number;
   initialOffset: number;
   initialSearchText: string | null;
+  initialSearchCategory: string | null;
 }
 
 const View: React.FC<Props> = ({
   initialLimit,
   initialOffset,
   initialSearchText,
+  initialSearchCategory,
 }) => {
   const [searchParams] = useSearchParams();
 
@@ -187,6 +207,7 @@ const View: React.FC<Props> = ({
   const [limit, setLimit] = useState(initialLimit);
   const [offset, setOffset] = useState(initialOffset);
   const [searchText, setSearchText] = useState(initialSearchText);
+  const [searchCategory, setSearchCategory] = useState(initialSearchCategory);
 
   const [currentSearchOptions, setCurrentSearchOptions] =
     useState<QueryOptions<SortField> | null>(null);
@@ -214,23 +235,35 @@ const View: React.FC<Props> = ({
       }
     }
 
-    const searchParamsSearch = searchParams.get('search');
+    const searchParamsSearchText = searchParams.get('search');
     let searchText: string | null;
-    if (searchParamsSearch === null) {
+    if (searchParamsSearchText === null) {
       searchText = null;
     } else {
-      searchText = searchParamsSearch;
+      searchText = searchParamsSearchText;
+    }
+
+    const searchParamsSearchCategory = searchParams.get('category');
+    let searchCategory: string | null;
+    if (searchParamsSearchCategory === null) {
+      searchCategory = null;
+    } else {
+      searchCategory = searchParamsSearchCategory;
     }
 
     setLimit(limit);
     setOffset(offset);
     setSearchText(searchText);
-    setCurrentSearchOptions(generateSearchOptions(limit, offset, searchText));
+    setSearchCategory(searchCategory);
+    setCurrentSearchOptions(
+      generateSearchOptions(limit, offset, searchText, searchCategory),
+    );
   }, [
     searchParams,
     setLimit,
     setOffset,
     setSearchText,
+    setSearchCategory,
     setCurrentSearchOptions,
   ]);
 
@@ -260,9 +293,11 @@ const View: React.FC<Props> = ({
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const limit = parseInt(e.target.value, 10);
       setLimit(limit);
-      setCurrentSearchOptions(generateSearchOptions(limit, offset, searchText));
+      setCurrentSearchOptions(
+        generateSearchOptions(limit, offset, searchText, searchCategory),
+      );
     },
-    [setLimit, offset, searchText],
+    [setLimit, offset, searchText, searchCategory],
   );
 
   const onSearchTextChange = useCallback(
@@ -273,8 +308,10 @@ const View: React.FC<Props> = ({
   );
 
   const onSearch = useCallback(() => {
-    setCurrentSearchOptions(generateSearchOptions(limit, offset, searchText));
-  }, [setCurrentSearchOptions, limit, offset, searchText]);
+    setCurrentSearchOptions(
+      generateSearchOptions(limit, offset, searchText, searchCategory),
+    );
+  }, [setCurrentSearchOptions, limit, offset, searchText, searchCategory]);
 
   const toHrefFn = useCallback(
     (offset: number, limit: number) => {
@@ -367,7 +404,7 @@ const View: React.FC<Props> = ({
 };
 
 const Index: React.FC = () => {
-  const { dehydratedState, limit, offset, search } =
+  const { dehydratedState, limit, offset, searchText, searchCategory } =
     useLoaderData<LoaderData>();
 
   return (
@@ -375,7 +412,8 @@ const Index: React.FC = () => {
       <View
         initialLimit={limit}
         initialOffset={offset}
-        initialSearchText={search}
+        initialSearchText={searchText}
+        initialSearchCategory={searchCategory}
       />
     </HydrationBoundary>
   );

@@ -1,4 +1,8 @@
-import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import {
+  faArrowLeft,
+  faArrowRight,
+  faBook,
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   LoaderFunction,
@@ -222,12 +226,20 @@ const View: React.FC<Props> = ({
             {story.username}
           </Link>
         </div>
-        <div className="flex flex-row justify-center">
+        <div className="mb-2 flex flex-row justify-center">
           {previousElement}
           <div>{chapter.name}</div>
           {nextElement}
         </div>
-        <div dangerouslySetInnerHTML={{ __html: markdownHtml }} />
+        <div className="flex flex-row justify-center">
+          <Link to={`/stories/${storyId}`} className="text-red-500">
+            <FontAwesomeIcon icon={faBook} />
+          </Link>
+        </div>
+        <div
+          className="[&_p]:mb-4"
+          dangerouslySetInnerHTML={{ __html: markdownHtml }}
+        />
       </MainContainer>
     );
   }

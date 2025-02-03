@@ -70,10 +70,15 @@ const View: React.FC = () => {
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
-    queryFn: () =>
-      allPages((limit, offset) =>
-        getCategories(process.env.API_HOST as string, { limit, offset }, null),
-      ),
+    queryFn: () => {
+      if (configService === undefined) {
+        throw new Error('configSerive undefined');
+      }
+      const host = configService.get<string>('API_HOST') as string;
+      return allPages((limit, offset) =>
+        getCategories(host, { limit, offset }, null),
+      );
+    },
     enabled: configService !== undefined,
   });
 

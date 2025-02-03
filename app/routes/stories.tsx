@@ -266,6 +266,7 @@ function paramsToSearchOptions(
     }
   }
 
+  // TODO sort
   return generateSearchOptions(
     limit,
     offset,

@@ -22,6 +22,7 @@ import {
   dehydrate,
   useQuery,
 } from '@tanstack/react-query';
+import { Field, Form, Formik, FormikHelpers } from 'formik';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
@@ -240,6 +241,52 @@ const StoryCard: React.FC<StoryCardProps> = memo(
   },
 );
 
+function paramsToSearchOptions(
+  searchParams: URLSearchParams,
+): PageQueryOptions {
+  const searchParamsLimit = searchParams.get('limit');
+  let limit: number;
+  if (searchParamsLimit === null) {
+    limit = DEFAULT_LIMIT;
+  } else {
+    limit = parseInt(searchParamsLimit, 10);
+    if (isNaN(limit)) {
+      limit = DEFAULT_LIMIT;
+    }
+  }
+
+  const searchParamsOffset = searchParams.get('offset');
+  let offset: number;
+  if (searchParamsOffset === null) {
+    offset = 0;
+  } else {
+    offset = parseInt(searchParamsOffset, 10);
+    if (isNaN(offset)) {
+      offset = 0;
+    }
+  }
+
+  return generateSearchOptions(
+    limit,
+    offset,
+    generateSearchQuery(
+      searchParams.get('smartSearch'),
+      searchParams.get('searchTitle'),
+      searchParams.get('searchSynposis'),
+      searchParams.get('searchStoryText'),
+      searchParams.get('searchTags'),
+      searchParams.get('searchDateRange'),
+      searchParams.get('searchCategories'),
+      searchParams.get('searchAuthorName'),
+    ),
+    null,
+  );
+}
+
+interface SearchFormValues {
+  smartSearch: string;
+}
+
 interface Props {
   initialLimit: number;
   initialSmartSearch: string | null;
@@ -251,87 +298,40 @@ const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
   const datetimeFormatter = useMemo(() => new Intl.DateTimeFormat(), []);
 
   const [limit, setLimit] = useState(initialLimit);
-  const [smartSearchText, setSmartSearchText] = useState(
-    () => initialSmartSearch ?? '',
+  const initialSearchValues = useMemo<SearchFormValues>(
+    () => ({ smartSearch: initialSmartSearch ?? '' }),
+    [initialSmartSearch],
   );
 
   const [currentSearchOptions, setCurrentSearchOptions] =
-    useState<PageQueryOptions | null>(null);
+    useState<PageQueryOptions>(() => paramsToSearchOptions(searchParams));
 
   useEffect(() => {
-    const searchParamsLimit = searchParams.get('limit');
-    let limit: number;
-    if (searchParamsLimit === null) {
-      limit = DEFAULT_LIMIT;
-    } else {
-      limit = parseInt(searchParamsLimit, 10);
-      if (isNaN(limit)) {
-        limit = DEFAULT_LIMIT;
-      }
-    }
-
-    const searchParamsOffset = searchParams.get('offset');
-    let offset: number;
-    if (searchParamsOffset === null) {
-      offset = 0;
-    } else {
-      offset = parseInt(searchParamsOffset, 10);
-      if (isNaN(offset)) {
-        offset = 0;
-      }
-    }
-
-    const searchParamsSmartSearch = searchParams.get('smartSearch');
-    let smartSearchText_: string;
-    if (searchParamsSmartSearch === null) {
-      smartSearchText_ = '';
-    } else {
-      smartSearchText_ = searchParamsSmartSearch;
-    }
-
-    setLimit(limit);
-    setSmartSearchText(smartSearchText_);
-
-    const options = generateSearchOptions(
-      limit,
-      offset,
-      generateSearchQuery(
-        smartSearchText,
-        searchParams.get('searchTitle'),
-        searchParams.get('searchSynposis'),
-        searchParams.get('searchStoryText'),
-        searchParams.get('searchTags'),
-        searchParams.get('searchDateRange'),
-        searchParams.get('searchCategories'),
-        searchParams.get('searchAuthorName'),
-      ),
-      null,
-    );
+    const options = paramsToSearchOptions(searchParams);
+    setLimit(options.limit);
     setCurrentSearchOptions(options);
-  }, [setLimit, setSmartSearchText, setCurrentSearchOptions, searchParams]);
+  }, [setLimit, setCurrentSearchOptions, searchParams]);
 
   const { data: configService } = useConfig();
 
   const { data: stories } = useQuery({
     queryKey: [
       'stories:withUsers',
-      currentSearchOptions?.limit ?? DEFAULT_LIMIT,
-      currentSearchOptions?.offset ?? 0,
-      currentSearchOptions?.search ?? null,
-      currentSearchOptions?.sort ?? DEFAULT_SORT,
+      currentSearchOptions.limit,
+      currentSearchOptions.offset,
+      currentSearchOptions.search,
+      currentSearchOptions.sort,
     ],
     queryFn: () => {
       if (configService === undefined) {
         throw new Error('configSerive undefined');
       }
-      if (currentSearchOptions === null) {
-        throw new Error('currentSearchOptions null');
-      }
       const host = configService.get<string>('API_HOST') as string;
       return getStoriesWithUsers(host, currentSearchOptions, null);
     },
-    enabled: configService !== undefined && currentSearchOptions !== null,
+    enabled: configService !== undefined,
   });
+  console.log('stories', stories);
 
   const onLimitChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -348,18 +348,15 @@ const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
     [setLimit, setSearchParams, searchParams],
   );
 
-  const onSmartSearchTextChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSmartSearchText(e.target.value);
+  const onSearchSubmit = useCallback(
+    (values: SearchFormValues, actions: FormikHelpers<SearchFormValues>) => {
+      const params = new URLSearchParams();
+      params.set('smartSearch', values.smartSearch);
+      setSearchParams(params);
+      actions.setSubmitting(false);
     },
-    [setSmartSearchText],
+    [setSearchParams],
   );
-
-  const onSearch = useCallback(() => {
-    const params = new URLSearchParams();
-    params.set('smartSearch', smartSearchText);
-    setSearchParams(params);
-  }, [setSearchParams, smartSearchText]);
 
   const toHrefFn = useCallback(
     (offset: number, limit: number) => {
@@ -385,12 +382,6 @@ const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
     if (currentSearchOptions === null) {
       throw new Error('currentSearchOptions null');
     }
-    if (currentSearchOptions.limit === undefined) {
-      throw new Error('searchOptions.limit undefined');
-    }
-    if (currentSearchOptions.offset === undefined) {
-      throw new Error('searchOptions.offset undefined');
-    }
     paginationElement = (
       <Pagination
         limit={currentSearchOptions.limit}
@@ -405,25 +396,30 @@ const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
 
   return (
     <MainContainer>
-      <div className="mb-2 flex w-1/2 flex-row border-2 border-slate-700">
-        <input
-          value={smartSearchText}
-          onChange={onSmartSearchTextChange}
-          className="flex-grow focus:outline-none"
-        />
-        <button
-          type="submit"
-          onClick={onSearch}
-          className="border-l border-white bg-red-500 px-2"
-        >
-          <FontAwesomeIcon icon={faMagnifyingGlass} height="1em" />
-        </button>
-        <Link
-          to="/stories/search"
-          className="border-l border-white bg-red-500 px-1"
-        >
-          <FontAwesomeIcon icon={faGear} height="1em" />
-        </Link>
+      <div className="mb-2 w-1/2 border-2 border-slate-700">
+        <Formik initialValues={initialSearchValues} onSubmit={onSearchSubmit}>
+          {() => (
+            <Form className="flex flex-row">
+              <Field
+                type="text"
+                name="smartSearch"
+                className="flex-grow focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="border-l border-white bg-red-500 px-2"
+              >
+                <FontAwesomeIcon icon={faMagnifyingGlass} height="1em" />
+              </button>
+              <Link
+                to="/stories/search"
+                className="border-l border-white bg-red-500 px-1"
+              >
+                <FontAwesomeIcon icon={faGear} height="1em" />
+              </Link>
+            </Form>
+          )}
+        </Formik>
       </div>
       <div className="w-full text-slate-800">{storyTitleElements}</div>
       <div className="mt-3 flex flex-row border-t border-gray-200 pt-1">

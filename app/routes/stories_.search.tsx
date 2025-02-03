@@ -7,7 +7,8 @@ import {
   dehydrate,
   useQuery,
 } from '@tanstack/react-query';
-import React, { useCallback, useMemo, useState } from 'react';
+import { Field, Form, Formik, FormikHelpers } from 'formik';
+import React, { useCallback, useMemo } from 'react';
 
 import { getCategories } from '~/api/http/category.http';
 import { getSessionId } from '~/api/sessionid.lib';
@@ -57,25 +58,46 @@ export const loader: LoaderFunction = async ({
 };
 
 enum SearchField {
-  TITLE,
-  SYNOPSIS,
-  STORY_TEXT,
-  TAGS,
+  TITLE = 'title',
+  SYNOPSIS = 'synopsis',
+  STORY_TEXT = 'story_text',
+  TAGS = 'tags',
 }
+
+const SearchFieldMappings: { title: string; value: SearchField }[] = [
+  { title: 'Title', value: SearchField.TITLE },
+  { title: 'Synopsis', value: SearchField.SYNOPSIS },
+  { title: 'Story Text', value: SearchField.STORY_TEXT },
+  { title: 'Tags', value: SearchField.TAGS },
+];
 
 enum DateRange {
-  ANY,
-  ONE_WEEK,
-  ONE_MONTH,
-  THREE_MONTH,
-  SIX_MONTH,
-  ONE_YEAR,
+  ANY = 'any',
+  ONE_WEEK = '1w',
+  ONE_MONTH = '1M',
+  THREE_MONTH = '3M',
+  SIX_MONTH = '6M',
+  ONE_YEAR = '1y',
 }
 
+const DateRangeMappings: { title: string; value: DateRange }[] = [
+  { title: 'Any', value: DateRange.ANY },
+  { title: '1 Week', value: DateRange.ONE_WEEK },
+  { title: '1 Month', value: DateRange.ONE_MONTH },
+  { title: '3 Months', value: DateRange.THREE_MONTH },
+  { title: '6 Months', value: DateRange.SIX_MONTH },
+  { title: '1 Year', value: DateRange.ONE_YEAR },
+];
+
 enum DateRangeBeyond {
-  AND_OLDER,
-  AND_NEWER,
+  AND_OLDER = 'older',
+  AND_NEWER = 'newer',
 }
+
+const DateRangeBeyondMappings: { title: string; value: DateRangeBeyond }[] = [
+  { title: 'And Older', value: DateRangeBeyond.AND_OLDER },
+  { title: 'And Newer', value: DateRangeBeyond.AND_NEWER },
+];
 
 enum Sort {
   ALPHABETICAL,
@@ -85,24 +107,38 @@ enum Sort {
   NUM_COMMENTS,
 }
 
+const SortMappings: { title: string; value: Sort }[] = [
+  { title: 'Alphabetical', value: Sort.ALPHABETICAL },
+  { title: 'Date', value: Sort.DATE },
+];
+
+interface FormValues {
+  searchText: string;
+  searchFields: string[];
+  searchDateRange: string;
+  searchDateRangeBeyond: string;
+  searchCategories: string[];
+  sort: string;
+  searchAuthorName: string;
+}
+
 const View: React.FC = () => {
   const navigate = useNavigate();
 
   const { data: configService } = useConfig();
 
-  const [searchText, setSearchText] = useState('');
-  const [searchFields, setSearchFields] = useState<SearchField[]>(() => [
-    SearchField.TITLE,
-  ]);
-  const [searchDateRange, setSearchDateRange] = useState(DateRange.ANY);
-  const [searchDateRangeBeyond, setSearchDateRangeBeyond] = useState(
-    DateRangeBeyond.AND_OLDER,
+  const intialValues = useMemo<FormValues>(
+    () => ({
+      searchText: '',
+      searchFields: ['title'],
+      searchDateRange: 'any',
+      searchDateRangeBeyond: 'older',
+      searchCategories: ['__all__'],
+      sort: 'alphabetical',
+      searchAuthorName: '',
+    }),
+    [],
   );
-  const [searchCategories, setSearchCategories] = useState<string[]>([
-    '__all__',
-  ]);
-  const [sort, setSort] = useState(Sort.ALPHABETICAL);
-  const [searchAuthorName, setSearchAuthorName] = useState('');
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -113,355 +149,130 @@ const View: React.FC = () => {
     enabled: configService !== undefined,
   });
 
-  const searchFieldValues = useMemo(() => {
-    return searchFields.map(field => {
-      switch (field) {
-        case SearchField.TITLE: {
-          return 'title';
-        }
-        case SearchField.SYNOPSIS: {
-          return 'synopsis';
-        }
-        case SearchField.STORY_TEXT: {
-          return 'story_text';
-        }
-        case SearchField.TAGS: {
-          return 'tags';
-        }
-        default: {
-          throw new Error('unknown search field');
-        }
-      }
-    });
-  }, [searchFields]);
+  const onSubmit = useCallback(
+    (values: FormValues, actions: FormikHelpers<FormValues>) => {
+      const params: QueryParams = {};
 
-  const searchDateRangeValues = useMemo(() => {
-    switch (searchDateRange) {
-      case DateRange.ANY: {
-        return 'any';
+      const searchText_ = values.searchText.trim();
+      if (values.searchFields.includes(SearchField.TITLE)) {
+        params['searchTitle'] = searchText_;
       }
-      case DateRange.ONE_WEEK: {
-        return '1w';
-      }
-      case DateRange.ONE_MONTH: {
-        return '1M';
-      }
-      case DateRange.THREE_MONTH: {
-        return '3M';
-      }
-      case DateRange.SIX_MONTH: {
-        return '6M';
-      }
-      case DateRange.ONE_YEAR: {
-        return '1Y';
-      }
-      default: {
-        throw new Error('unknown search date range');
-      }
-    }
-  }, [searchDateRange]);
 
-  const searchDateRangeBeyondValues = useMemo(() => {
-    switch (searchDateRangeBeyond) {
-      case DateRangeBeyond.AND_OLDER: {
-        return 'older';
+      if (values.searchFields.includes(SearchField.SYNOPSIS)) {
+        params['searchSynopsis'] = searchText_;
       }
-      case DateRangeBeyond.AND_NEWER: {
-        return 'newer';
+      if (values.searchFields.includes(SearchField.STORY_TEXT)) {
+        params['searchStoryText'] = searchText_;
       }
-      default: {
-        throw new Error('unknown search date range beyond');
-      }
-    }
-  }, [searchDateRangeBeyond]);
 
-  const sortValue = useMemo(() => {
-    switch (sort) {
-      case Sort.ALPHABETICAL: {
-        return 'alphabetical';
+      if (values.searchFields.includes(SearchField.TAGS)) {
+        params['searchTags'] = searchText_;
       }
-      case Sort.RELEVANCY: {
-        return 'relevancy';
-      }
-      case Sort.DATE: {
-        return 'date';
-      }
-      case Sort.SCORE: {
-        return 'score';
-      }
-      case Sort.NUM_COMMENTS: {
-        return 'num_comments';
-      }
-      default: {
-        throw new Error('unknown sort');
-      }
-    }
-  }, [sort]);
 
-  const onSearchTextChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchText(e.target.value);
-    },
-    [setSearchText],
-  );
-
-  const onSearchFieldsChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setSearchFields(
-        Array.from(e.target.selectedOptions, option => {
-          switch (option.value) {
-            case 'title': {
-              return SearchField.TITLE;
+      switch (values.searchDateRange) {
+        case DateRange.ANY: {
+          break;
+        }
+        case DateRange.ONE_WEEK: {
+          switch (values.searchDateRangeBeyond) {
+            case DateRangeBeyond.AND_OLDER: {
+              params['searchDateRange'] = 'older_than:1w';
+              break;
             }
-            case 'synopsis': {
-              return SearchField.SYNOPSIS;
-            }
-            case 'story_text': {
-              return SearchField.STORY_TEXT;
-            }
-            case 'tags': {
-              return SearchField.TAGS;
+            case DateRangeBeyond.AND_NEWER: {
+              params['searchDateRange'] = 'earlier_than:1w';
+              break;
             }
             default: {
-              throw new Error('unknown search field');
+              throw new Error('unknown search date range beyond');
             }
           }
-        }),
-      );
-    },
-    [setSearchFields],
-  );
-
-  const onSearchDateRangeChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      switch (e.target.value) {
-        case 'any': {
-          setSearchDateRange(DateRange.ANY);
           break;
         }
-        case '1w': {
-          setSearchDateRange(DateRange.ONE_WEEK);
+        case DateRange.ONE_MONTH: {
+          switch (values.searchDateRangeBeyond) {
+            case DateRangeBeyond.AND_OLDER: {
+              params['searchDateRange'] = 'older_than:1M';
+              break;
+            }
+            case DateRangeBeyond.AND_NEWER: {
+              params['searchDateRange'] = 'earlier_than:1M';
+              break;
+            }
+            default: {
+              throw new Error('unknown search date range beyond');
+            }
+          }
           break;
         }
-        case '1M': {
-          setSearchDateRange(DateRange.ONE_MONTH);
+        case DateRange.THREE_MONTH: {
+          switch (values.searchDateRangeBeyond) {
+            case DateRangeBeyond.AND_OLDER: {
+              params['searchDateRange'] = 'older_than:3M';
+              break;
+            }
+            case DateRangeBeyond.AND_NEWER: {
+              params['searchDateRange'] = 'earlier_than:3M';
+              break;
+            }
+            default: {
+              throw new Error('unknown search date range beyond');
+            }
+          }
           break;
         }
-        case '3M': {
-          setSearchDateRange(DateRange.THREE_MONTH);
+        case DateRange.SIX_MONTH: {
+          switch (values.searchDateRangeBeyond) {
+            case DateRangeBeyond.AND_OLDER: {
+              params['searchDateRange'] = 'older_than:3M';
+              break;
+            }
+            case DateRangeBeyond.AND_NEWER: {
+              params['searchDateRange'] = 'earlier_than:3M';
+              break;
+            }
+            default: {
+              throw new Error('unknown search date range beyond');
+            }
+          }
           break;
         }
-        case '6M': {
-          setSearchDateRange(DateRange.SIX_MONTH);
+        case DateRange.ONE_YEAR: {
+          switch (values.searchDateRangeBeyond) {
+            case DateRangeBeyond.AND_OLDER: {
+              params['searchDateRange'] = 'older_than:1y';
+              break;
+            }
+            case DateRangeBeyond.AND_NEWER: {
+              params['searchDateRange'] = 'earlier_than:1y';
+              break;
+            }
+            default: {
+              throw new Error('unknown search date range beyond');
+            }
+          }
           break;
         }
-        case '1Y': {
-          setSearchDateRange(DateRange.ONE_YEAR);
-          break;
-        }
-        default: {
+        default:
           throw new Error('unknown search date range');
-        }
       }
+
+      if (!values.searchCategories.includes('__all__')) {
+        params['searchCategories'] = values.searchCategories.join(',');
+      }
+
+      // TODO various values
+      params['sort'] = 'title:ASC';
+
+      const searchAuthorName_ = values.searchAuthorName.trim();
+      if (searchAuthorName_) {
+        params['searchAuthorName'] = searchAuthorName_;
+      }
+
+      navigate(`/stories${generateQueryString(params)}`);
     },
-    [setSearchDateRange],
+    [navigate],
   );
-
-  const onSearchDateRangeBeyondChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      switch (e.target.value) {
-        case 'older': {
-          setSearchDateRangeBeyond(DateRangeBeyond.AND_OLDER);
-          break;
-        }
-        case 'newer': {
-          setSearchDateRangeBeyond(DateRangeBeyond.AND_NEWER);
-          break;
-        }
-        default: {
-          throw new Error('unknown search date range beyond');
-        }
-      }
-    },
-    [setSearchDateRangeBeyond],
-  );
-
-  const onSearchCategoriesChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setSearchCategories(
-        Array.from(e.target.selectedOptions, option => option.value),
-      );
-    },
-    [setSearchCategories],
-  );
-
-  const onSortChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      switch (e.target.value) {
-        case 'alphabetical': {
-          setSort(Sort.ALPHABETICAL);
-          break;
-        }
-        case 'relevancy': {
-          setSort(Sort.RELEVANCY);
-          break;
-        }
-        case 'date': {
-          setSort(Sort.DATE);
-          break;
-        }
-        case 'score': {
-          setSort(Sort.SCORE);
-          break;
-        }
-        case 'num_comments': {
-          setSort(Sort.NUM_COMMENTS);
-          break;
-        }
-        default: {
-          throw new Error('unknown sort');
-        }
-      }
-    },
-    [setSort],
-  );
-
-  const onSearchAuthorNameChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchAuthorName(e.target.value);
-    },
-    [setSearchAuthorName],
-  );
-
-  const onSearch = useCallback(() => {
-    const params: QueryParams = {};
-
-    const searchText_ = searchText.trim();
-    if (searchFields.includes(SearchField.TITLE)) {
-      params['searchTitle'] = searchText_;
-    }
-
-    if (searchFields.includes(SearchField.SYNOPSIS)) {
-      params['searchSynopsis'] = searchText_;
-    }
-    if (searchFields.includes(SearchField.STORY_TEXT)) {
-      params['searchStoryText'] = searchText_;
-    }
-
-    if (searchFields.includes(SearchField.TAGS)) {
-      params['searchTags'] = searchText_;
-    }
-
-    switch (searchDateRange) {
-      case DateRange.ANY: {
-        break;
-      }
-      case DateRange.ONE_WEEK: {
-        switch (searchDateRangeBeyond) {
-          case DateRangeBeyond.AND_OLDER: {
-            params['searchDateRange'] = 'older_than:1w';
-            break;
-          }
-          case DateRangeBeyond.AND_NEWER: {
-            params['searchDateRange'] = 'earlier_than:1w';
-            break;
-          }
-          default: {
-            throw new Error('unknown search date range beyond');
-          }
-        }
-        break;
-      }
-      case DateRange.ONE_MONTH: {
-        switch (searchDateRangeBeyond) {
-          case DateRangeBeyond.AND_OLDER: {
-            params['searchDateRange'] = 'older_than:1M';
-            break;
-          }
-          case DateRangeBeyond.AND_NEWER: {
-            params['searchDateRange'] = 'earlier_than:1M';
-            break;
-          }
-          default: {
-            throw new Error('unknown search date range beyond');
-          }
-        }
-        break;
-      }
-      case DateRange.THREE_MONTH: {
-        switch (searchDateRangeBeyond) {
-          case DateRangeBeyond.AND_OLDER: {
-            params['searchDateRange'] = 'older_than:3M';
-            break;
-          }
-          case DateRangeBeyond.AND_NEWER: {
-            params['searchDateRange'] = 'earlier_than:3M';
-            break;
-          }
-          default: {
-            throw new Error('unknown search date range beyond');
-          }
-        }
-        break;
-      }
-      case DateRange.SIX_MONTH: {
-        switch (searchDateRangeBeyond) {
-          case DateRangeBeyond.AND_OLDER: {
-            params['searchDateRange'] = 'older_than:3M';
-            break;
-          }
-          case DateRangeBeyond.AND_NEWER: {
-            params['searchDateRange'] = 'earlier_than:3M';
-            break;
-          }
-          default: {
-            throw new Error('unknown search date range beyond');
-          }
-        }
-        break;
-      }
-      case DateRange.ONE_YEAR: {
-        switch (searchDateRangeBeyond) {
-          case DateRangeBeyond.AND_OLDER: {
-            params['searchDateRange'] = 'older_than:1y';
-            break;
-          }
-          case DateRangeBeyond.AND_NEWER: {
-            params['searchDateRange'] = 'earlier_than:1y';
-            break;
-          }
-          default: {
-            throw new Error('unknown search date range beyond');
-          }
-        }
-        break;
-      }
-      default:
-        throw new Error('unknown search date range');
-    }
-
-    if (!searchCategories.includes('__all__')) {
-      params['searchCategories'] = searchCategories.join(',');
-    }
-
-    params['sort'] = sortValue;
-
-    const searchAuthorName_ = searchAuthorName.trim();
-    if (searchAuthorName_) {
-      params['searchAuthorName'] = searchAuthorName_;
-    }
-
-    navigate(`/stories${generateQueryString(params)}`);
-  }, [
-    navigate,
-    searchText,
-    searchFields,
-    searchDateRange,
-    searchDateRangeBeyond,
-    searchCategories,
-    sort,
-    searchAuthorName,
-  ]);
 
   const categoryElements = categories?.map(category => (
     <option key={category.name} value={category.name}>
@@ -469,87 +280,90 @@ const View: React.FC = () => {
     </option>
   ));
 
+  const searchFieldOptionElements = SearchFieldMappings.map(e => (
+    <option value={e.value}>{e.title}</option>
+  ));
+
+  const dateRangeOptionElements = DateRangeMappings.map(e => (
+    <option value={e.value}>{e.title}</option>
+  ));
+
+  const dateRangeBeyondOptionElements = DateRangeBeyondMappings.map(e => (
+    <option value={e.value}>{e.title}</option>
+  ));
+
+  const sortOptionElements = SortMappings.map(e => (
+    <option value={e.value}>{e.title}</option>
+  ));
+
   return (
     <MainContainer>
       <h1 className="mb-2 text-lg">Advanced Search</h1>
-      <div className="flex w-full flex-col p-2">
-        <input
-          value={searchText ?? ''}
-          onChange={onSearchTextChange}
-          placeholder="Search for Stories"
-          className="mb-4 border-2 border-slate-700"
-        />
-        <div>Search Fields:</div>
-        <select
-          multiple
-          value={searchFieldValues}
-          onChange={onSearchFieldsChange}
-          className="h-18 mb-2 border-2 border-slate-700"
-        >
-          <option value="title">Title</option>
-          <option value="synopsis">Synopsis</option>
-          <option value="story_text">Story Text</option>
-          <option value="tags">Tags</option>
-        </select>
-        <div>Date Range:</div>
-        <div className="mb-2 flex flex-row">
-          <select
-            value={searchDateRangeValues}
-            onChange={onSearchDateRangeChange}
-            className="mr-2 flex-grow border-2 border-slate-700"
-          >
-            <option value="any">Any</option>
-            <option value="1w">One Week</option>
-            <option value="1M">One Month</option>
-            <option value="3M">Three Months</option>
-            <option value="6M">Six Months</option>
-            <option value="1Y">One Year</option>
-          </select>
-          <select
-            value={searchDateRangeBeyondValues}
-            onChange={onSearchDateRangeBeyondChange}
-            className="flex-grow border-2 border-slate-700"
-          >
-            <option value="older">And Older</option>
-            <option value="newer">And Newer</option>
-          </select>
-        </div>
-        <div>Categories:</div>
-        <select
-          multiple
-          value={searchCategories}
-          onChange={onSearchCategoriesChange}
-          className="mb-2 border-2 border-slate-700"
-        >
-          <option value="__all__">All Categories</option>
-          {categoryElements}
-        </select>
-        <div>Sort:</div>
-        <select
-          value={sortValue}
-          onChange={onSortChange}
-          className="mb-2 border-2 border-slate-700"
-        >
-          <option value="alphabetical">Alphabetical</option>
-          <option value="relevancy">Relevancy</option>
-          <option value="date">Date</option>
-          <option value="score">Score</option>
-          <option value="num_comments"># of Comments</option>
-        </select>
-        <div>Author's Name:</div>
-        <input
-          value={searchAuthorName}
-          onChange={onSearchAuthorNameChange}
-          className="mb-4 border-2 border-slate-700"
-        />
-        <button
-          type="button"
-          onClick={onSearch}
-          className="w-1/2 rounded bg-red-500"
-        >
-          Search
-        </button>
-      </div>
+      <Formik initialValues={intialValues} onSubmit={onSubmit}>
+        {({}) => (
+          <Form className="flex w-full flex-col p-2">
+            <Field
+              name="searchText"
+              type="text"
+              placeholder="Search for Stories"
+              className="mb-4 border-2 border-slate-700"
+            />
+            <label htmlFor="searchFields">Search Fields:</label>
+            <Field
+              as="select"
+              name="searchFields"
+              multiple
+              className="h-18 mb-2 border-2 border-slate-700"
+            >
+              {searchFieldOptionElements}
+            </Field>
+            <label htmlFor="searchDateRange">Date Range:</label>
+            <div className="mb-2 flex flex-row">
+              <Field
+                as="select"
+                name="searchDateRange"
+                className="mr-2 flex-grow border-2 border-slate-700"
+              >
+                {dateRangeOptionElements}
+              </Field>
+              <Field
+                as="select"
+                name="searchDateRangeBeyond"
+                className="flex-grow border-2 border-slate-700"
+              >
+                {dateRangeBeyondOptionElements}
+              </Field>
+            </div>
+            <label htmlFor="searchCategories">Categories:</label>
+            <Field
+              as="select"
+              name="searchCategories"
+              multiple
+              className="mb-2 border-2 border-slate-700"
+            >
+              <option value="__all__">All Categories</option>
+              {categoryElements}
+            </Field>
+            <label htmlFor="sort">Sort:</label>
+            <Field
+              as="select"
+              name="sort"
+              className="mb-2 border-2 border-slate-700"
+            >
+              {sortOptionElements}
+            </Field>
+            <label htmlFor="searchAuthorName">Author's Name:</label>
+            <Field
+              name="searchAuthorName"
+              type="text"
+              className="mb-4 border-2 border-slate-700"
+            />
+            <button type="submit" className="w-1/2 rounded bg-red-500">
+              Search
+            </button>
+          </Form>
+        )}
+      </Formik>
     </MainContainer>
   );
 };

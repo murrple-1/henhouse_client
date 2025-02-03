@@ -1,5 +1,6 @@
 import { MetaFunction } from '@remix-run/node';
-import React, { useCallback, useState } from 'react';
+import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
+import React, { useCallback, useMemo } from 'react';
 
 import { MainContainer } from '~/components/main-container';
 
@@ -10,40 +11,53 @@ export const meta: MetaFunction = () => {
   ];
 };
 
+interface FormValues {
+  usernameEmail: string;
+  password: string;
+}
+
 const Index: React.FC = () => {
-  const [usernameEmail, setUsernameEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const onUsernameEmailChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setUsernameEmail(e.target.value);
-    },
-    [setUsernameEmail],
+  const initialValues = useMemo<FormValues>(
+    () => ({ usernameEmail: '', password: '' }),
+    [],
   );
 
-  const onPasswordChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setPassword(e.target.value);
-    },
-    [setPassword],
-  );
-
-  const onLoginClick = useCallback(() => {
+  const validate = useCallback((values: FormValues) => {
+    const errors: Record<string, string> = {};
     // TODO implement
-    console.log(usernameEmail, password);
-  }, [usernameEmail, password]);
+    return errors;
+  }, []);
+
+  const onSubmit = useCallback(
+    (values: FormValues, actions: FormikHelpers<FormValues>) => {
+      // TODO implement
+      console.log(values.usernameEmail, values.password);
+      actions.setSubmitting(false);
+    },
+    [],
+  );
 
   return (
     <MainContainer>
-      <input
-        type="text"
-        value={usernameEmail}
-        onChange={onUsernameEmailChange}
-      />
-      <input type="password" value={password} onChange={onPasswordChange} />
-      <button type="button" onClick={onLoginClick}>
-        Login
-      </button>
+      <Formik
+        initialValues={initialValues}
+        onSubmit={onSubmit}
+        validate={validate}
+      >
+        {({ isSubmitting, isValid }) => (
+          <Form>
+            <label htmlFor="usernameEmail">Username/Email</label>
+            <Field type="text" name="usernameEmail" />
+            <ErrorMessage name="usernameEmail" component="div" />
+            <label htmlFor="password">Password</label>
+            <Field type="password" name="password" />
+            <ErrorMessage name="password" component="div" />
+            <button type="submit" disabled={isSubmitting || !isValid}>
+              Submit
+            </button>
+          </Form>
+        )}
+      </Formik>
     </MainContainer>
   );
 };

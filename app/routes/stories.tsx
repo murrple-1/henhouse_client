@@ -28,11 +28,7 @@ import {
   StoryWithUser,
   getStoriesWithUsers,
 } from '~/api/facade/story-with-user.http';
-import { SortField } from '~/api/http/story.http';
-import { QueryOptions } from '~/api/query.interface';
 import { getSessionId } from '~/api/sessionid.lib';
-import { Sort } from '~/api/sort.interface';
-import { QueryParams, generateQueryString } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
 import { Pagination } from '~/components/pagination';
 import { useConfig } from '~/hooks/use-config';
@@ -44,40 +40,92 @@ export const meta: MetaFunction<typeof loader> = () => {
   ];
 };
 
-function generateSearchOptions(
-  limit: number | null,
-  offset: number | null,
-  searchText: string | null,
-  searchCategory: string | null,
-): QueryOptions<SortField> {
+function escapeSearchQuery(s: string): string {
+  return s.replace(/"/g, '\\"');
+}
+
+function generateSearchQuery(
+  smartSearch: string | null,
+  searchTitle: string | null,
+  searchSynopsis: string | null,
+  searchStoryText: string | null,
+  searchTags: string | null,
+  searchDateRange: string | null,
+  searchCategories: string | null,
+  searchAuthorName: string | null,
+) {
   const searchParts: string[] = [];
-  if (searchText) {
-    searchParts.push(`title:"${searchText}"`);
+  if (smartSearch) {
+    const escapedSmartSearch = escapeSearchQuery(smartSearch);
+    searchParts.push(
+      `(title:"${escapedSmartSearch}" OR synopsis:"${escapedSmartSearch}" OR storyText:"${escapedSmartSearch}")`,
+    );
   }
 
-  if (searchCategory) {
-    searchParts.push(`category:"${searchCategory}"`);
+  if (searchTitle) {
+    searchParts.push(`title:"${escapeSearchQuery(searchTitle)}"`);
   }
 
-  const search = searchParts.length > 0 ? searchParts.join(' AND ') : undefined;
+  if (searchSynopsis) {
+    searchParts.push(`synopsis:"${escapeSearchQuery(searchSynopsis)}"`);
+  }
 
+  if (searchStoryText) {
+    searchParts.push(`storyText:"${escapeSearchQuery(searchStoryText)}"`);
+  }
+
+  if (searchTags) {
+    searchParts.push(
+      ...searchTags.split(',').map(tag => `tag:"${escapeSearchQuery(tag)}"`),
+    );
+  }
+
+  if (searchDateRange) {
+    searchParts.push(
+      `publishedAt_delta:"${escapeSearchQuery(searchDateRange)}"`,
+    );
+  }
+
+  if (searchCategories) {
+    searchParts.push(`category:"${escapeSearchQuery(searchCategories)}"`);
+  }
+
+  if (searchAuthorName) {
+    searchParts.push(`authorName:"${escapeSearchQuery(searchAuthorName)}"`);
+  }
+
+  return searchParts.length > 0 ? searchParts.join(' AND ') : null;
+}
+
+interface PageQueryOptions {
+  limit: number;
+  offset: number;
+  search?: string;
+  sort: string;
+}
+
+function generateSearchOptions(
+  limit: number,
+  offset: number,
+  search: string | null,
+  sort: string | null,
+): PageQueryOptions {
   return {
-    limit: limit ?? undefined,
-    offset: offset ?? undefined,
-    search,
-    sort: new Sort([['title', 'ASC']]),
+    limit,
+    offset,
+    search: search ?? undefined,
+    sort: sort ?? DEFAULT_SORT,
   };
 }
 
 interface LoaderData {
   dehydratedState: DehydratedState;
   limit: number;
-  offset: number;
-  searchText: string | null;
-  searchCategory: string | null;
+  smartSearch: string | null;
 }
 
 const DEFAULT_LIMIT = 20;
+const DEFAULT_SORT = 'title:ASC';
 
 export const loader: LoaderFunction = async ({
   request,
@@ -94,13 +142,11 @@ export const loader: LoaderFunction = async ({
 
   const limitQuery = url.searchParams.get('limit');
   const offsetQuery = url.searchParams.get('offset');
-  const searchTextQuery = url.searchParams.get('search');
-  const searchCategoryQuery = url.searchParams.get('category');
+  const smartSearchQuery = url.searchParams.get('search');
 
   let limit: number = DEFAULT_LIMIT;
   let offset: number = 0;
-  let searchText: string | null = null;
-  let searchCategory: string | null = null;
+  let smartSearch: string | null = null;
 
   if (limitQuery !== null) {
     limit = parseInt(limitQuery, 10);
@@ -116,34 +162,41 @@ export const loader: LoaderFunction = async ({
     }
   }
 
-  if (searchTextQuery !== null) {
-    searchText = searchTextQuery;
-  }
-
-  if (searchCategoryQuery !== null) {
-    searchCategory = searchCategoryQuery;
+  if (smartSearchQuery !== null) {
+    smartSearch = smartSearchQuery;
   }
 
   const queryClient = new QueryClient();
 
-  const options = generateSearchOptions(
-    limit,
-    offset,
-    searchText,
-    searchCategory,
+  const searchQuery = generateSearchQuery(
+    smartSearch,
+    url.searchParams.get('searchTitle'),
+    url.searchParams.get('searchSynposis'),
+    url.searchParams.get('searchStoryText'),
+    url.searchParams.get('searchTags'),
+    url.searchParams.get('searchDateRange'),
+    url.searchParams.get('searchCategories'),
+    url.searchParams.get('searchAuthorName'),
   );
 
+  // TODO sort
+  const options = generateSearchOptions(limit, offset, searchQuery, null);
+
   await queryClient.prefetchQuery({
-    queryKey: ['stories:withUsers', limit, offset, searchText, searchCategory],
+    queryKey: [
+      'stories:withUsers',
+      options.limit,
+      options.offset,
+      options.search,
+      options.sort,
+    ],
     queryFn: () =>
       getStoriesWithUsers(process.env.API_HOST as string, options, sessionId),
   });
   return {
     dehydratedState: dehydrate(queryClient),
     limit,
-    offset,
-    searchText,
-    searchCategory,
+    smartSearch,
   };
 };
 
@@ -189,28 +242,21 @@ const StoryCard: React.FC<StoryCardProps> = memo(
 
 interface Props {
   initialLimit: number;
-  initialOffset: number;
-  initialSearchText: string | null;
-  initialSearchCategory: string | null;
+  initialSmartSearch: string | null;
 }
 
-const View: React.FC<Props> = ({
-  initialLimit,
-  initialOffset,
-  initialSearchText,
-  initialSearchCategory,
-}) => {
-  const [searchParams] = useSearchParams();
+const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const datetimeFormatter = useMemo(() => new Intl.DateTimeFormat(), []);
 
   const [limit, setLimit] = useState(initialLimit);
-  const [offset, setOffset] = useState(initialOffset);
-  const [searchText, setSearchText] = useState(initialSearchText);
-  const [searchCategory, setSearchCategory] = useState(initialSearchCategory);
+  const [smartSearchText, setSmartSearchText] = useState(
+    () => initialSmartSearch ?? '',
+  );
 
   const [currentSearchOptions, setCurrentSearchOptions] =
-    useState<QueryOptions<SortField> | null>(null);
+    useState<PageQueryOptions | null>(null);
 
   useEffect(() => {
     const searchParamsLimit = searchParams.get('limit');
@@ -235,46 +281,44 @@ const View: React.FC<Props> = ({
       }
     }
 
-    const searchParamsSearchText = searchParams.get('search');
-    let searchText: string | null;
-    if (searchParamsSearchText === null) {
-      searchText = null;
+    const searchParamsSmartSearch = searchParams.get('smartSearch');
+    let smartSearchText_: string;
+    if (searchParamsSmartSearch === null) {
+      smartSearchText_ = '';
     } else {
-      searchText = searchParamsSearchText;
-    }
-
-    const searchParamsSearchCategory = searchParams.get('category');
-    let searchCategory: string | null;
-    if (searchParamsSearchCategory === null) {
-      searchCategory = null;
-    } else {
-      searchCategory = searchParamsSearchCategory;
+      smartSearchText_ = searchParamsSmartSearch;
     }
 
     setLimit(limit);
-    setOffset(offset);
-    setSearchText(searchText);
-    setSearchCategory(searchCategory);
-    setCurrentSearchOptions(
-      generateSearchOptions(limit, offset, searchText, searchCategory),
+    setSmartSearchText(smartSearchText_);
+
+    const options = generateSearchOptions(
+      limit,
+      offset,
+      generateSearchQuery(
+        smartSearchText,
+        searchParams.get('searchTitle'),
+        searchParams.get('searchSynposis'),
+        searchParams.get('searchStoryText'),
+        searchParams.get('searchTags'),
+        searchParams.get('searchDateRange'),
+        searchParams.get('searchCategories'),
+        searchParams.get('searchAuthorName'),
+      ),
+      null,
     );
-  }, [
-    searchParams,
-    setLimit,
-    setOffset,
-    setSearchText,
-    setSearchCategory,
-    setCurrentSearchOptions,
-  ]);
+    setCurrentSearchOptions(options);
+  }, [setLimit, setSmartSearchText, setCurrentSearchOptions, searchParams]);
 
   const { data: configService } = useConfig();
 
   const { data: stories } = useQuery({
     queryKey: [
       'stories:withUsers',
-      currentSearchOptions?.limit,
-      currentSearchOptions?.offset,
-      currentSearchOptions?.search,
+      currentSearchOptions?.limit ?? DEFAULT_LIMIT,
+      currentSearchOptions?.offset ?? 0,
+      currentSearchOptions?.search ?? null,
+      currentSearchOptions?.sort ?? DEFAULT_SORT,
     ],
     queryFn: () => {
       if (configService === undefined) {
@@ -291,42 +335,41 @@ const View: React.FC<Props> = ({
 
   const onLimitChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const limit = parseInt(e.target.value, 10);
-      setLimit(limit);
-      setCurrentSearchOptions(
-        generateSearchOptions(limit, offset, searchText, searchCategory),
-      );
+      const limit_ = parseInt(e.target.value, 10);
+      if (isNaN(limit_)) {
+        return;
+      }
+
+      const params = new URLSearchParams(searchParams);
+      params.set('limit', limit_.toString(10));
+      setLimit(limit_);
+      setSearchParams(params);
     },
-    [setLimit, offset, searchText, searchCategory],
+    [setLimit, setSearchParams, searchParams],
   );
 
-  const onSearchTextChange = useCallback(
+  const onSmartSearchTextChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchText(e.target.value);
+      setSmartSearchText(e.target.value);
     },
-    [setSearchText],
+    [setSmartSearchText],
   );
 
   const onSearch = useCallback(() => {
-    setCurrentSearchOptions(
-      generateSearchOptions(limit, offset, searchText, searchCategory),
-    );
-  }, [setCurrentSearchOptions, limit, offset, searchText, searchCategory]);
+    const params = new URLSearchParams();
+    params.set('smartSearch', smartSearchText);
+    setSearchParams(params);
+  }, [setSearchParams, smartSearchText]);
 
   const toHrefFn = useCallback(
     (offset: number, limit: number) => {
-      const params: QueryParams = {
-        'limit': limit.toString(10),
-        'offset': offset.toString(10),
-      };
+      const params = new URLSearchParams(searchParams);
+      params.set('offset', offset.toString(10));
+      params.set('limit', limit.toString(10));
 
-      if (searchText) {
-        params['search'] = searchText;
-      }
-
-      return `/stories${generateQueryString(params)}`;
+      return `/stories?${params.toString()}`;
     },
-    [searchText],
+    [searchParams],
   );
 
   const storyTitleElements = stories?.items.map((s, i) => (
@@ -364,12 +407,12 @@ const View: React.FC<Props> = ({
     <MainContainer>
       <div className="mb-2 flex w-1/2 flex-row border-2 border-slate-700">
         <input
-          value={searchText ?? ''}
-          onChange={onSearchTextChange}
+          value={smartSearchText}
+          onChange={onSmartSearchTextChange}
           className="flex-grow focus:outline-none"
         />
         <button
-          type="button"
+          type="submit"
           onClick={onSearch}
           className="border-l border-white bg-red-500 px-2"
         >
@@ -404,17 +447,11 @@ const View: React.FC<Props> = ({
 };
 
 const Index: React.FC = () => {
-  const { dehydratedState, limit, offset, searchText, searchCategory } =
-    useLoaderData<LoaderData>();
+  const { dehydratedState, limit, smartSearch } = useLoaderData<LoaderData>();
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <View
-        initialLimit={limit}
-        initialOffset={offset}
-        initialSearchText={searchText}
-        initialSearchCategory={searchCategory}
-      />
+      <View initialLimit={limit} initialSmartSearch={smartSearch} />
     </HydrationBoundary>
   );
 };

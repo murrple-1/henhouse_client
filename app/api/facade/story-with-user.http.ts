@@ -18,7 +18,7 @@ export async function getStoryWithUser(
   sessionId: string | null,
 ) {
   return getStory(host, id, sessionId).then(async story => {
-    const users = await userLookup(host, [story.creator], sessionId);
+    const users = await userLookup(host, [story.author], sessionId);
     const user = users[0] as User;
 
     return {
@@ -38,7 +38,7 @@ export async function getStoriesWithUsers(
   sessionId: string | null,
 ) {
   return getStories(host, options, sessionId).then(async stories => {
-    const userUuids = new Set<string>(stories.items.map(s => s.creator));
+    const userUuids = new Set<string>(stories.items.map(s => s.author));
     const users = await userLookup(host, Array.from(userUuids), sessionId);
     const userMap: Record<string, User> = {};
     for (const u of users) {
@@ -46,7 +46,7 @@ export async function getStoriesWithUsers(
     }
     return {
       items: stories.items.map(s_1 => {
-        const user = userMap[s_1.creator] as User;
+        const user = userMap[s_1.author] as User;
         return {
           uuid: s_1.uuid,
           title: s_1.title,

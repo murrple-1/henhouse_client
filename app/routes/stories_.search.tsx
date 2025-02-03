@@ -11,7 +11,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 
 import { getCategories } from '~/api/http/category.http';
 import { getSessionId } from '~/api/sessionid.lib';
-import { allPages } from '~/api/utils.lib';
+import { QueryParams, allPages, generateQueryString } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
 import { useConfig } from '~/hooks/use-config';
 
@@ -59,6 +59,8 @@ export const loader: LoaderFunction = async ({
 enum SearchField {
   TITLE,
   SYNOPSIS,
+  STORY_TEXT,
+  TAGS,
 }
 
 enum DateRange {
@@ -114,60 +116,85 @@ const View: React.FC = () => {
   const searchFieldValues = useMemo(() => {
     return searchFields.map(field => {
       switch (field) {
-        case SearchField.TITLE:
+        case SearchField.TITLE: {
           return 'title';
-        case SearchField.SYNOPSIS:
+        }
+        case SearchField.SYNOPSIS: {
           return 'synopsis';
-        default:
+        }
+        case SearchField.STORY_TEXT: {
+          return 'story_text';
+        }
+        case SearchField.TAGS: {
+          return 'tags';
+        }
+        default: {
           throw new Error('unknown search field');
+        }
       }
     });
   }, [searchFields]);
 
   const searchDateRangeValues = useMemo(() => {
     switch (searchDateRange) {
-      case DateRange.ANY:
+      case DateRange.ANY: {
         return 'any';
-      case DateRange.ONE_WEEK:
+      }
+      case DateRange.ONE_WEEK: {
         return '1w';
-      case DateRange.ONE_MONTH:
+      }
+      case DateRange.ONE_MONTH: {
         return '1M';
-      case DateRange.THREE_MONTH:
+      }
+      case DateRange.THREE_MONTH: {
         return '3M';
-      case DateRange.SIX_MONTH:
+      }
+      case DateRange.SIX_MONTH: {
         return '6M';
-      case DateRange.ONE_YEAR:
+      }
+      case DateRange.ONE_YEAR: {
         return '1Y';
-      default:
+      }
+      default: {
         throw new Error('unknown search date range');
+      }
     }
   }, [searchDateRange]);
 
   const searchDateRangeBeyondValues = useMemo(() => {
     switch (searchDateRangeBeyond) {
-      case DateRangeBeyond.AND_OLDER:
+      case DateRangeBeyond.AND_OLDER: {
         return 'older';
-      case DateRangeBeyond.AND_NEWER:
+      }
+      case DateRangeBeyond.AND_NEWER: {
         return 'newer';
-      default:
+      }
+      default: {
         throw new Error('unknown search date range beyond');
+      }
     }
   }, [searchDateRangeBeyond]);
 
   const sortValue = useMemo(() => {
     switch (sort) {
-      case Sort.ALPHABETICAL:
+      case Sort.ALPHABETICAL: {
         return 'alphabetical';
-      case Sort.RELEVANCY:
+      }
+      case Sort.RELEVANCY: {
         return 'relevancy';
-      case Sort.DATE:
+      }
+      case Sort.DATE: {
         return 'date';
-      case Sort.SCORE:
+      }
+      case Sort.SCORE: {
         return 'score';
-      case Sort.NUM_COMMENTS:
+      }
+      case Sort.NUM_COMMENTS: {
         return 'num_comments';
-      default:
+      }
+      default: {
         throw new Error('unknown sort');
+      }
     }
   }, [sort]);
 
@@ -183,12 +210,21 @@ const View: React.FC = () => {
       setSearchFields(
         Array.from(e.target.selectedOptions, option => {
           switch (option.value) {
-            case 'title':
+            case 'title': {
               return SearchField.TITLE;
-            case 'synopsis':
+            }
+            case 'synopsis': {
               return SearchField.SYNOPSIS;
-            default:
+            }
+            case 'story_text': {
+              return SearchField.STORY_TEXT;
+            }
+            case 'tags': {
+              return SearchField.TAGS;
+            }
+            default: {
               throw new Error('unknown search field');
+            }
           }
         }),
       );
@@ -199,26 +235,33 @@ const View: React.FC = () => {
   const onSearchDateRangeChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       switch (e.target.value) {
-        case 'any':
+        case 'any': {
           setSearchDateRange(DateRange.ANY);
           break;
-        case '1w':
+        }
+        case '1w': {
           setSearchDateRange(DateRange.ONE_WEEK);
           break;
-        case '1M':
+        }
+        case '1M': {
           setSearchDateRange(DateRange.ONE_MONTH);
           break;
-        case '3M':
+        }
+        case '3M': {
           setSearchDateRange(DateRange.THREE_MONTH);
           break;
-        case '6M':
+        }
+        case '6M': {
           setSearchDateRange(DateRange.SIX_MONTH);
           break;
-        case '1Y':
+        }
+        case '1Y': {
           setSearchDateRange(DateRange.ONE_YEAR);
           break;
-        default:
+        }
+        default: {
           throw new Error('unknown search date range');
+        }
       }
     },
     [setSearchDateRange],
@@ -227,14 +270,17 @@ const View: React.FC = () => {
   const onSearchDateRangeBeyondChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       switch (e.target.value) {
-        case 'older':
+        case 'older': {
           setSearchDateRangeBeyond(DateRangeBeyond.AND_OLDER);
           break;
-        case 'newer':
+        }
+        case 'newer': {
           setSearchDateRangeBeyond(DateRangeBeyond.AND_NEWER);
           break;
-        default:
+        }
+        default: {
           throw new Error('unknown search date range beyond');
+        }
       }
     },
     [setSearchDateRangeBeyond],
@@ -252,23 +298,29 @@ const View: React.FC = () => {
   const onSortChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       switch (e.target.value) {
-        case 'alphabetical':
+        case 'alphabetical': {
           setSort(Sort.ALPHABETICAL);
           break;
-        case 'relevancy':
+        }
+        case 'relevancy': {
           setSort(Sort.RELEVANCY);
           break;
-        case 'date':
+        }
+        case 'date': {
           setSort(Sort.DATE);
           break;
-        case 'score':
+        }
+        case 'score': {
           setSort(Sort.SCORE);
           break;
-        case 'num_comments':
+        }
+        case 'num_comments': {
           setSort(Sort.NUM_COMMENTS);
           break;
-        default:
+        }
+        default: {
           throw new Error('unknown sort');
+        }
       }
     },
     [setSort],
@@ -282,8 +334,134 @@ const View: React.FC = () => {
   );
 
   const onSearch = useCallback(() => {
-    navigate(`/stories?search=${searchText}`);
-  }, [navigate, searchText]);
+    const params: QueryParams = {};
+
+    const searchText_ = searchText.trim();
+    if (searchFields.includes(SearchField.TITLE)) {
+      params['searchTitle'] = searchText_;
+    }
+
+    if (searchFields.includes(SearchField.SYNOPSIS)) {
+      params['searchSynopsis'] = searchText_;
+    }
+    if (searchFields.includes(SearchField.STORY_TEXT)) {
+      params['searchStoryText'] = searchText_;
+    }
+
+    if (searchFields.includes(SearchField.TAGS)) {
+      params['searchTags'] = searchText_;
+    }
+
+    switch (searchDateRange) {
+      case DateRange.ANY: {
+        break;
+      }
+      case DateRange.ONE_WEEK: {
+        switch (searchDateRangeBeyond) {
+          case DateRangeBeyond.AND_OLDER: {
+            params['searchDateRange'] = 'older_than:1w';
+            break;
+          }
+          case DateRangeBeyond.AND_NEWER: {
+            params['searchDateRange'] = 'earlier_than:1w';
+            break;
+          }
+          default: {
+            throw new Error('unknown search date range beyond');
+          }
+        }
+        break;
+      }
+      case DateRange.ONE_MONTH: {
+        switch (searchDateRangeBeyond) {
+          case DateRangeBeyond.AND_OLDER: {
+            params['searchDateRange'] = 'older_than:1M';
+            break;
+          }
+          case DateRangeBeyond.AND_NEWER: {
+            params['searchDateRange'] = 'earlier_than:1M';
+            break;
+          }
+          default: {
+            throw new Error('unknown search date range beyond');
+          }
+        }
+        break;
+      }
+      case DateRange.THREE_MONTH: {
+        switch (searchDateRangeBeyond) {
+          case DateRangeBeyond.AND_OLDER: {
+            params['searchDateRange'] = 'older_than:3M';
+            break;
+          }
+          case DateRangeBeyond.AND_NEWER: {
+            params['searchDateRange'] = 'earlier_than:3M';
+            break;
+          }
+          default: {
+            throw new Error('unknown search date range beyond');
+          }
+        }
+        break;
+      }
+      case DateRange.SIX_MONTH: {
+        switch (searchDateRangeBeyond) {
+          case DateRangeBeyond.AND_OLDER: {
+            params['searchDateRange'] = 'older_than:3M';
+            break;
+          }
+          case DateRangeBeyond.AND_NEWER: {
+            params['searchDateRange'] = 'earlier_than:3M';
+            break;
+          }
+          default: {
+            throw new Error('unknown search date range beyond');
+          }
+        }
+        break;
+      }
+      case DateRange.ONE_YEAR: {
+        switch (searchDateRangeBeyond) {
+          case DateRangeBeyond.AND_OLDER: {
+            params['searchDateRange'] = 'older_than:1y';
+            break;
+          }
+          case DateRangeBeyond.AND_NEWER: {
+            params['searchDateRange'] = 'earlier_than:1y';
+            break;
+          }
+          default: {
+            throw new Error('unknown search date range beyond');
+          }
+        }
+        break;
+      }
+      default:
+        throw new Error('unknown search date range');
+    }
+
+    if (!searchCategories.includes('__all__')) {
+      params['searchCategories'] = searchCategories.join(',');
+    }
+
+    params['sort'] = sortValue;
+
+    const searchAuthorName_ = searchAuthorName.trim();
+    if (searchAuthorName_) {
+      params['searchAuthorName'] = searchAuthorName_;
+    }
+
+    navigate(`/stories${generateQueryString(params)}`);
+  }, [
+    navigate,
+    searchText,
+    searchFields,
+    searchDateRange,
+    searchDateRangeBeyond,
+    searchCategories,
+    sort,
+    searchAuthorName,
+  ]);
 
   const categoryElements = categories?.map(category => (
     <option key={category.name} value={category.name}>
@@ -306,10 +484,12 @@ const View: React.FC = () => {
           multiple
           value={searchFieldValues}
           onChange={onSearchFieldsChange}
-          className="mb-2 h-12 border-2 border-slate-700"
+          className="h-18 mb-2 border-2 border-slate-700"
         >
           <option value="title">Title</option>
           <option value="synopsis">Synopsis</option>
+          <option value="story_text">Story Text</option>
+          <option value="tags">Tags</option>
         </select>
         <div>Date Range:</div>
         <div className="mb-2 flex flex-row">

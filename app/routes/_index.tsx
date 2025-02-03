@@ -82,7 +82,10 @@ const View: React.FC = () => {
       key={`categoryElements-${index}`}
       className="rounded bg-sky-100 p-2 text-center"
     >
-      <Link to={`/stories?category=${category.name}`} className="text-red-500">
+      <Link
+        to={`/stories?searchCategories=${encodeURIComponent(category.name)}`}
+        className="text-red-500"
+      >
         {category.prettyName}
       </Link>
       <div className="text-sm">{category.description}</div>

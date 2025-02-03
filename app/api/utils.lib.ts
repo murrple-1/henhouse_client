@@ -97,6 +97,11 @@ export async function handleEmptyResponse(response: Response) {
 export function handleError(context: string, error: unknown): never {
   console.error('API call failed:', context);
 
+  if (error instanceof z.ZodError) {
+    console.error(error.toString());
+    throw error;
+  }
+
   if (error instanceof ResponseError) {
     throw error;
   }

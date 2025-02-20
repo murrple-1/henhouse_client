@@ -1,3 +1,5 @@
+import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { LoaderFunction, MetaFunction } from '@remix-run/node';
 import { useLoaderData, useNavigate } from '@remix-run/react';
 import {
@@ -7,10 +9,11 @@ import {
   dehydrate,
   useQuery,
 } from '@tanstack/react-query';
-import { Field, Form, Formik, FormikHelpers } from 'formik';
-import React, { useCallback, useMemo } from 'react';
+import { Field, Form, Formik } from 'formik';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { getCategories } from '~/api/http/category.http';
+import { Category, getCategories } from '~/api/http/category.http';
+import { Tag, getTags } from '~/api/http/tag.http';
 import { getSessionId } from '~/api/sessionid.lib';
 import { QueryParams, allPages, generateQueryString } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
@@ -57,20 +60,6 @@ export const loader: LoaderFunction = async ({
   };
 };
 
-enum SearchField {
-  TITLE = 'title',
-  SYNOPSIS = 'synopsis',
-  STORY_TEXT = 'story_text',
-  TAGS = 'tags',
-}
-
-const SearchFieldMappings: { title: string; value: SearchField }[] = [
-  { title: 'Title', value: SearchField.TITLE },
-  { title: 'Synopsis', value: SearchField.SYNOPSIS },
-  { title: 'Story Text', value: SearchField.STORY_TEXT },
-  { title: 'Tags', value: SearchField.TAGS },
-];
-
 enum DateRange {
   ANY = 'any',
   ONE_WEEK = '1w',
@@ -114,23 +103,30 @@ const SortMappings: { title: string; value: Sort }[] = [
 
 interface FormValues {
   searchText: string;
-  searchFields: string[];
+  searchText_title: boolean;
+  searchText_synopsis: boolean;
+  searchText_storyText: boolean;
   searchDateRange: string;
   searchDateRangeBeyond: string;
-  searchCategories: string[];
   sort: string;
   searchAuthorName: string;
 }
+
+const TAGS_FILTER_DEBOUNCE_INTERVAL_MS = 500;
+const CATEGORY_FILTER_DEBOUNCE_INTERVAL_MS = 500;
 
 const View: React.FC = () => {
   const navigate = useNavigate();
 
   const { data: configService } = useConfig();
 
-  const intialValues = useMemo<FormValues>(
+  const initialValues = useMemo<FormValues>(
     () => ({
       searchText: '',
-      searchFields: ['title'],
+      searchText_title: true,
+      searchText_synopsis: false,
+      searchText_storyText: false,
+      searchTags: [],
       searchDateRange: 'any',
       searchDateRangeBeyond: 'older',
       searchCategories: ['__all__'],
@@ -140,33 +136,123 @@ const View: React.FC = () => {
     [],
   );
 
+  const [tagsFilter, setTagsFilter] = useState('');
+  const [debouncedTagsFilter, setDebouncedTagsFilter] = useState('');
+
+  const [selectedSearchTags, setSelectedSearchTags] = useState<Tag[]>([]);
+
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [debouncedCategoryFilter, setDebouncedCategoryFilter] = useState('');
+
+  const [selectedSearchCategories, setSelectedSearchCategories] = useState<
+    Category[]
+  >([]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedTagsFilter(tagsFilter);
+    }, TAGS_FILTER_DEBOUNCE_INTERVAL_MS);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [tagsFilter, setDebouncedTagsFilter]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedCategoryFilter(categoryFilter);
+    }, CATEGORY_FILTER_DEBOUNCE_INTERVAL_MS);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [categoryFilter, setDebouncedCategoryFilter]);
+
+  const onTagsFilterChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setTagsFilter(e.target.value);
+    },
+    [setTagsFilter],
+  );
+
+  const onCategoryFilterChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setCategoryFilter(e.target.value);
+    },
+    [setCategoryFilter],
+  );
+
   const { data: categories } = useQuery({
     queryKey: ['categories'],
-    queryFn: () =>
-      allPages((limit, offset) =>
-        getCategories(process.env.API_HOST as string, { limit, offset }, null),
-      ),
+    queryFn: () => {
+      if (configService === undefined) {
+        throw new Error('configSerive undefined');
+      }
+      const host = configService.get<string>('API_HOST') as string;
+      return allPages((limit, offset) =>
+        getCategories(host, { limit, offset }, null),
+      );
+    },
     enabled: configService !== undefined,
   });
 
+  const [filteredCategories, setFilteredCategories] = useState(
+    categories ?? [],
+  );
+
+  useEffect(() => {
+    if (categories === undefined) {
+      return;
+    }
+
+    setFilteredCategories(
+      categories.filter(c =>
+        c.prettyName.toLowerCase().includes(debouncedCategoryFilter.trim()),
+      ),
+    );
+  }, [categories, debouncedCategoryFilter, setFilteredCategories]);
+
+  const { data: tags } = useQuery({
+    queryKey: ['tags', debouncedTagsFilter.trim()],
+    queryFn: () => {
+      if (configService === undefined) {
+        throw new Error('configSerive undefined');
+      }
+      const host = configService.get<string>('API_HOST') as string;
+      return getTags(
+        host,
+        {
+          sort: 'name:ASC',
+          search: `name:"${debouncedTagsFilter.trim()}"`,
+        },
+        null,
+      );
+    },
+    enabled: configService !== undefined && debouncedTagsFilter.trim() !== '',
+  });
+
   const onSubmit = useCallback(
-    (values: FormValues, actions: FormikHelpers<FormValues>) => {
+    (values: FormValues) => {
       const params: QueryParams = {};
 
+      console.log(values);
+
       const searchText_ = values.searchText.trim();
-      if (values.searchFields.includes(SearchField.TITLE)) {
-        params['searchTitle'] = searchText_;
+      if (searchText_) {
+        if (values.searchText_title) {
+          params['searchTitle'] = searchText_;
+        }
+
+        if (values.searchText_synopsis) {
+          params['searchSynopsis'] = searchText_;
+        }
+        if (values.searchText_storyText) {
+          params['searchStoryText'] = searchText_;
+        }
       }
 
-      if (values.searchFields.includes(SearchField.SYNOPSIS)) {
-        params['searchSynopsis'] = searchText_;
-      }
-      if (values.searchFields.includes(SearchField.STORY_TEXT)) {
-        params['searchStoryText'] = searchText_;
-      }
-
-      if (values.searchFields.includes(SearchField.TAGS)) {
-        params['searchTags'] = searchText_;
+      if (selectedSearchTags.length > 0) {
+        params['searchTags'] = selectedSearchTags.map(t => t.name).join(',');
       }
 
       switch (values.searchDateRange) {
@@ -257,8 +343,10 @@ const View: React.FC = () => {
           throw new Error('unknown search date range');
       }
 
-      if (!values.searchCategories.includes('__all__')) {
-        params['searchCategories'] = values.searchCategories.join(',');
+      if (selectedSearchCategories.length > 0) {
+        params['searchCategories'] = selectedSearchCategories
+          .map(c => c.name)
+          .join(',');
       }
 
       // TODO various values
@@ -271,52 +359,165 @@ const View: React.FC = () => {
 
       navigate(`/stories${generateQueryString(params)}`);
     },
-    [navigate],
+    [navigate, selectedSearchCategories, selectedSearchTags],
   );
 
-  const categoryElements = categories?.map(category => (
-    <option key={category.name} value={category.name}>
-      {category.prettyName}
+  let selectedTagElements: React.ReactElement | React.ReactElement[];
+  if (selectedSearchTags.length > 0) {
+    // TODO it would be cool if there was a cap on number of tags to show, with like a "show more" button at the end
+    selectedTagElements = selectedSearchTags.map((t, i) => (
+      <div
+        key={`selectedTagElements-${i}`}
+        className="mr-2 rounded p-1 dark:bg-slate-700"
+      >
+        <span className="mr-1">{t.prettyName}</span>
+        <FontAwesomeIcon
+          icon={faXmark}
+          onClick={() => {
+            setSelectedSearchTags(selectedSearchTags.filter(t_ => t_ !== t));
+          }}
+        />
+      </div>
+    ));
+  } else {
+    selectedTagElements = (
+      <div className="mr-2 rounded p-1 dark:bg-slate-600">None Selected</div>
+    );
+  }
+
+  let searchTagsOptionElements: React.ReactElement | React.ReactElement[];
+  if (debouncedTagsFilter.trim().length > 0 && tags !== undefined) {
+    const unselectedTags = tags.items.filter(
+      t => !selectedSearchTags.includes(t),
+    );
+    if (unselectedTags.length > 0) {
+      searchTagsOptionElements = unselectedTags.map((t, i) => (
+        <option
+          key={`searchTagsOptionElements-${i}`}
+          value={t.name}
+          onDoubleClick={() => {
+            setSelectedSearchTags([...selectedSearchTags, t]);
+          }}
+        >
+          {t.prettyName}
+        </option>
+      ));
+    } else {
+      searchTagsOptionElements = (
+        <option value="" disabled>
+          No Tags Found
+        </option>
+      );
+    }
+  } else {
+    searchTagsOptionElements = (
+      <option value="" disabled>
+        No Tags Loaded
+      </option>
+    );
+  }
+
+  let selectedCategoryElements: React.ReactElement | React.ReactElement[];
+  if (selectedSearchCategories.length > 0) {
+    // TODO it would be cool if there was a cap on number of tags to show, with like a "show more" button at the end
+    selectedCategoryElements = selectedSearchCategories.map((c, i) => (
+      <div
+        key={`selectedCategoryElements-${i}`}
+        className="mr-2 rounded p-1 dark:bg-slate-700"
+      >
+        <span className="mr-1">{c.prettyName}</span>
+        <FontAwesomeIcon
+          icon={faXmark}
+          onClick={() => {
+            setSelectedSearchCategories(
+              selectedSearchCategories.filter(c_ => c_ !== c),
+            );
+          }}
+        />
+      </div>
+    ));
+  } else {
+    selectedCategoryElements = (
+      <div className="mr-2 rounded p-1 dark:bg-slate-600">None Selected</div>
+    );
+  }
+
+  const searchCategoryOptionElements = filteredCategories
+    .filter(c => !selectedSearchCategories.includes(c))
+    .map((c, i) => (
+      <option
+        key={`categoryElements-${i}`}
+        value={c.name}
+        onDoubleClick={() => {
+          setSelectedSearchCategories([...selectedSearchCategories, c]);
+        }}
+      >
+        {c.prettyName}
+      </option>
+    ));
+
+  const dateRangeOptionElements = DateRangeMappings.map((e, i) => (
+    <option key={`dateRangeOptionElements-${i}`} value={e.value}>
+      {e.title}
     </option>
   ));
 
-  const searchFieldOptionElements = SearchFieldMappings.map(e => (
-    <option value={e.value}>{e.title}</option>
+  const dateRangeBeyondOptionElements = DateRangeBeyondMappings.map((e, i) => (
+    <option key={`dateRangeBeyondOptionElements-${i}`} value={e.value}>
+      {e.title}
+    </option>
   ));
 
-  const dateRangeOptionElements = DateRangeMappings.map(e => (
-    <option value={e.value}>{e.title}</option>
-  ));
-
-  const dateRangeBeyondOptionElements = DateRangeBeyondMappings.map(e => (
-    <option value={e.value}>{e.title}</option>
-  ));
-
-  const sortOptionElements = SortMappings.map(e => (
-    <option value={e.value}>{e.title}</option>
+  const sortOptionElements = SortMappings.map((e, i) => (
+    <option key={`sortOptionElements-${i}`} value={e.value}>
+      {e.title}
+    </option>
   ));
 
   return (
     <MainContainer>
       <h1 className="mb-2 text-lg">Advanced Search</h1>
-      <Formik initialValues={intialValues} onSubmit={onSubmit}>
-        {({}) => (
+      <Formik initialValues={initialValues} onSubmit={onSubmit}>
+        {() => (
           <Form className="flex w-full flex-col p-2">
             <Field
               name="searchText"
               type="text"
               placeholder="Search for Stories"
-              className="mb-4 border-2 border-slate-700"
             />
-            <label htmlFor="searchFields">Search Fields:</label>
-            <Field
-              as="select"
-              name="searchFields"
-              multiple
-              className="h-18 mb-2 border-2 border-slate-700"
-            >
-              {searchFieldOptionElements}
-            </Field>
+            <div className="my-2 rounded p-2 dark:bg-gray-700">
+              <h2>Search In:</h2>
+              <div className="flex flex-row">
+                <label htmlFor="searchText_title" className="mr-2">
+                  Title:
+                </label>
+                <Field type="checkbox" name="searchText_title" />
+              </div>
+              <div className="flex flex-row">
+                <label htmlFor="searchText_synopsis" className="mr-2">
+                  Synopsis:
+                </label>
+                <Field type="checkbox" name="searchText_synopsis" />
+              </div>
+              <div className="flex flex-row">
+                <label htmlFor="searchText_storyText" className="mr-2">
+                  Story Text:
+                </label>
+                <Field type="checkbox" name="searchText_storyText" />
+              </div>
+            </div>
+            <h2>Tags:</h2>
+            <input
+              type="text"
+              value={tagsFilter}
+              onChange={onTagsFilterChange}
+              className="border-2 border-slate-700"
+              placeholder="Filter Tags"
+            />
+            <div className="my-2 flex flex-row">{selectedTagElements}</div>
+            <select className="h-18 mb-2 border-2 border-slate-700" multiple>
+              {searchTagsOptionElements}
+            </select>
             <label htmlFor="searchDateRange">Date Range:</label>
             <div className="mb-2 flex flex-row">
               <Field
@@ -334,16 +535,18 @@ const View: React.FC = () => {
                 {dateRangeBeyondOptionElements}
               </Field>
             </div>
-            <label htmlFor="searchCategories">Categories:</label>
-            <Field
-              as="select"
-              name="searchCategories"
-              multiple
-              className="mb-2 border-2 border-slate-700"
-            >
-              <option value="__all__">All Categories</option>
-              {categoryElements}
-            </Field>
+            <h2>Categories:</h2>
+            <input
+              type="text"
+              value={categoryFilter}
+              onChange={onCategoryFilterChange}
+              className="border-2 border-slate-700"
+              placeholder="Filter Categories"
+            />
+            <div className="my-2 flex flex-row">{selectedCategoryElements}</div>
+            <select className="mb-2 border-2 border-slate-700" multiple>
+              {searchCategoryOptionElements}
+            </select>
             <label htmlFor="sort">Sort:</label>
             <Field
               as="select"
@@ -352,7 +555,7 @@ const View: React.FC = () => {
             >
               {sortOptionElements}
             </Field>
-            <label htmlFor="searchAuthorName">Author's Name:</label>
+            <label htmlFor="searchAuthorName">Author&apos;s Name:</label>
             <Field
               name="searchAuthorName"
               type="text"
@@ -367,6 +570,8 @@ const View: React.FC = () => {
     </MainContainer>
   );
 };
+
+View.displayName = 'Stories/Search';
 
 const Index: React.FC = () => {
   const { dehydratedState } = useLoaderData<LoaderData>();

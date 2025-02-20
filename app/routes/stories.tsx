@@ -23,6 +23,7 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 import { Field, Form, Formik, FormikHelpers } from 'formik';
+import PropTypes from 'prop-types';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
@@ -240,6 +241,12 @@ const StoryCard: React.FC<StoryCardProps> = memo(
     );
   },
 );
+
+StoryCard.propTypes = {
+  storyWithUser: PropTypes.any.isRequired,
+  datetimeFormatter: PropTypes.any.isRequired,
+};
+StoryCard.displayName = 'StoryCard';
 
 function paramsToSearchOptions(
   searchParams: URLSearchParams,

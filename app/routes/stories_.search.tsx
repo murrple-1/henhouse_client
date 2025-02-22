@@ -491,25 +491,38 @@ const View: React.FC = () => {
                 <label htmlFor="searchText_title" className="mr-2">
                   Title:
                 </label>
-                <Field type="checkbox" name="searchText_title" />
+                <Field
+                  type="checkbox"
+                  id="searchText_title"
+                  name="searchText_title"
+                />
               </div>
               <div className="flex flex-row">
                 <label htmlFor="searchText_synopsis" className="mr-2">
                   Synopsis:
                 </label>
-                <Field type="checkbox" name="searchText_synopsis" />
+                <Field
+                  type="checkbox"
+                  id="searchText_synopsis"
+                  name="searchText_synopsis"
+                />
               </div>
               <div className="flex flex-row">
                 <label htmlFor="searchText_storyText" className="mr-2">
                   Story Text:
                 </label>
-                <Field type="checkbox" name="searchText_storyText" />
+                <Field
+                  type="checkbox"
+                  id="searchText_storyText"
+                  name="searchText_storyText"
+                />
               </div>
             </div>
-            <h2>Tags:</h2>
+            <label htmlFor="tagsFilter">Tags:</label>
             <div className="my-2 flex flex-row">{selectedTagElements}</div>
             <input
               type="text"
+              id="tagsFilter"
               value={tagsFilter}
               onChange={onTagsFilterChange}
               className="border-2 border-slate-700"
@@ -525,6 +538,7 @@ const View: React.FC = () => {
             <div className="mb-2 flex flex-row">
               <Field
                 as="select"
+                id="searchDateRange"
                 name="searchDateRange"
                 className="mr-2 flex-grow border-2 border-slate-700"
               >
@@ -538,10 +552,11 @@ const View: React.FC = () => {
                 {dateRangeBeyondOptionElements}
               </Field>
             </div>
-            <h2>Categories:</h2>
+            <label htmlFor="categoryFilter">Categories:</label>
             <div className="my-2 flex flex-row">{selectedCategoryElements}</div>
             <input
               type="text"
+              id="categoryFilter"
               value={categoryFilter}
               onChange={onCategoryFilterChange}
               className="border-2 border-slate-700"
@@ -556,6 +571,7 @@ const View: React.FC = () => {
             <label htmlFor="sort">Sort:</label>
             <Field
               as="select"
+              id="sort"
               name="sort"
               className="mb-2 border-2 border-slate-700"
             >
@@ -564,6 +580,7 @@ const View: React.FC = () => {
             <label htmlFor="searchAuthorName">Author&apos;s Name:</label>
             <Field
               name="searchAuthorName"
+              id="searchAuthorName"
               type="text"
               className="mb-4 border-2 border-slate-700"
             />

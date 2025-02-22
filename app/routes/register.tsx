@@ -1,4 +1,5 @@
 import { MetaFunction } from '@remix-run/node';
+import { Link } from '@remix-run/react';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
 import React, { useCallback, useMemo } from 'react';
 
@@ -26,7 +27,24 @@ const Index: React.FC = () => {
 
   const validate = useCallback((values: FormValues) => {
     const errors: Record<string, string> = {};
-    // TODO implement
+
+    if (values.username.trim() === '') {
+      errors.username = 'Required';
+    }
+
+    if (values.email.trim() === '') {
+      errors.email = 'Required';
+    }
+
+    // TODO not quite right
+    if (values.password === '') {
+      errors.password = 'Required';
+    }
+
+    if (values.confirmPassword === '') {
+      errors.confirmPassword = 'Required';
+    }
+
     return errors;
   }, []);
 
@@ -52,25 +70,66 @@ const Index: React.FC = () => {
         validate={validate}
       >
         {({ isSubmitting, isValid }) => (
-          <Form>
-            <label htmlFor="username">Username</label>
-            <Field type="text" name="username" />
-            <ErrorMessage name="username" component="div" />
-            <label htmlFor="email">Email</label>
-            <Field type="email" name="email" />
-            <ErrorMessage name="email" component="div" />
-            <label htmlFor="password">Password</label>
-            <Field type="password" name="password" />
-            <ErrorMessage name="password" component="div" />
-            <label htmlFor="passwordConfirm">Confirm Password</label>
-            <Field type="password" name="passwordConfirm" />
-            <ErrorMessage name="passwordConfirm" component="div" />
+          <Form className="flex w-full flex-col items-center p-2">
+            <Field
+              type="text"
+              name="username"
+              className="w-1/2 border-2 border-slate-700"
+              placeholder="Username"
+            />
+            <ErrorMessage
+              name="username"
+              component="div"
+              className="text-red-600"
+            />
+            <div className="h-2" />
+            <Field
+              type="email"
+              name="email"
+              className="w-1/2 border-2 border-slate-700"
+              placeholder="Email"
+            />
+            <ErrorMessage
+              name="email"
+              component="div"
+              className="text-red-600"
+            />
+            <div className="h-2" />
+            <Field
+              type="password"
+              name="password"
+              className="w-1/2 border-2 border-slate-700"
+              placeholder="Password"
+            />
+            <ErrorMessage
+              name="password"
+              component="div"
+              className="text-red-600"
+            />
+            <div className="h-2" />
+            <Field
+              type="password"
+              name="passwordConfirm"
+              className="w-1/2 border-2 border-slate-700"
+              placeholder="Confirm Password"
+            />
+            <ErrorMessage
+              name="passwordConfirm"
+              component="div"
+              className="text-red-600"
+            />
+            <div className="h-2" />
             <button type="submit" disabled={isSubmitting || !isValid}>
               Submit
             </button>
           </Form>
         )}
       </Formik>
+      <div>
+        <Link to="/login" className="text-red-500">
+          Login
+        </Link>
+      </div>
     </MainContainer>
   );
 };

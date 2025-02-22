@@ -6,6 +6,13 @@ export const Header: React.FC = () => {
       <Link to="/" className="ml-4 text-black">
         Henhouse
       </Link>
+      <span className="flex-grow" />
+      <Link to="/login" className="mr-4 text-black">
+        Login
+      </Link>
+      <Link to="/register" className="mr-4 text-black">
+        Register
+      </Link>
     </header>
   );
 };

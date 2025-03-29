@@ -585,7 +585,7 @@ const View: React.FC = () => {
               className="mb-4 border-2 border-slate-700"
             />
             <div className="flex flex-row justify-center">
-              <button type="submit" className="w-1/2 rounded bg-red-500">
+              <button type="submit" className="w-1/2 rounded dark:bg-red-500">
                 Search
               </button>
             </div>

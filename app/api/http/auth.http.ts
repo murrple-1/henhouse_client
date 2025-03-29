@@ -41,6 +41,7 @@ export async function register(
       body: JSON.stringify(body),
       headers,
       method: 'POST',
+      credentials: 'include',
     });
     return await handleEmptyResponse(response);
   } catch (error: unknown) {
@@ -67,6 +68,7 @@ export async function login(
       body: JSON.stringify(body),
       headers,
       method: 'POST',
+      credentials: 'include',
     });
     return await handleEmptyResponse(response);
   } catch (error: unknown) {

@@ -1,9 +1,14 @@
 import { MetaFunction } from '@remix-run/node';
-import { Link } from '@remix-run/react';
+import { Link, useNavigate } from '@remix-run/react';
+import { validate as validateEmail } from 'email-validator';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 
+import { getCSRFToken } from '~/api/csrftoken.lib';
+import { register } from '~/api/http/auth.http';
+import { ResponseError } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
+import { useConfig } from '~/hooks/use-config';
 
 export const meta: MetaFunction = () => {
   return [
@@ -16,12 +21,17 @@ interface FormValues {
   username: string;
   email: string;
   password: string;
-  confirmPassword: string;
+  passwordConfirm: string;
 }
 
 const Index: React.FC = () => {
+  const { data: configService } = useConfig();
+  const navigate = useNavigate();
+
+  const [generalError, setGeneralError] = useState<string | null>(null);
+
   const initialValues = useMemo<FormValues>(
-    () => ({ username: '', email: '', password: '', confirmPassword: '' }),
+    () => ({ username: '', email: '', password: '', passwordConfirm: '' }),
     [],
   );
 
@@ -32,34 +42,65 @@ const Index: React.FC = () => {
       errors.username = 'Required';
     }
 
-    if (values.email.trim() === '') {
+    const email_ = values.email.trim();
+    if (email_ === '') {
       errors.email = 'Required';
+    } else if (!validateEmail(email_)) {
+      errors.email = 'Invalid email';
     }
 
-    // TODO not quite right
     if (values.password === '') {
       errors.password = 'Required';
-    }
-
-    if (values.confirmPassword === '') {
-      errors.confirmPassword = 'Required';
+    } else if (values.passwordConfirm === '') {
+      errors.passwordConfirm = 'Required';
+    } else if (values.password !== values.passwordConfirm) {
+      errors.passwordConfirm = 'Passwords do not match';
     }
 
     return errors;
   }, []);
 
   const onSubmit = useCallback(
-    (values: FormValues, actions: FormikHelpers<FormValues>) => {
-      // TODO implement
-      console.log(
-        values.username,
-        values.email,
-        values.password,
-        values.confirmPassword,
-      );
+    async (values: FormValues, actions: FormikHelpers<FormValues>) => {
+      setGeneralError(null);
+
+      if (configService === undefined) {
+        throw new Error('configSerive undefined');
+      }
+      const csrfToken = getCSRFToken(document.cookie);
+      if (csrfToken === null) {
+        throw new Error('csrfToken null');
+      }
+      const host = configService.get<string>('API_HOST') as string;
+      try {
+        await register(
+          host,
+          {
+            username: values.username,
+            email: values.email,
+            password: values.password,
+          },
+          csrfToken,
+        );
+
+        navigate('/register/success');
+      } catch (error: unknown) {
+        let errorHandled = false;
+        if (error instanceof ResponseError) {
+          if (error.status === 409) {
+            setGeneralError('Username or email already exists');
+            errorHandled = true;
+          }
+        }
+
+        if (!errorHandled) {
+          console.error(error);
+          setGeneralError('An unknown error has occurred. Please try again');
+        }
+      }
       actions.setSubmitting(false);
     },
-    [],
+    [navigate, configService, setGeneralError],
   );
 
   return (
@@ -69,7 +110,7 @@ const Index: React.FC = () => {
         onSubmit={onSubmit}
         validate={validate}
       >
-        {({ isSubmitting, isValid }) => (
+        {({ isSubmitting, isValid, dirty }) => (
           <Form className="flex w-full flex-col items-center p-2">
             <Field
               type="text"
@@ -119,12 +160,21 @@ const Index: React.FC = () => {
               className="text-red-600"
             />
             <div className="h-2" />
-            <button type="submit" disabled={isSubmitting || !isValid}>
-              Submit
+            <button
+              type="submit"
+              className="w-1/2 rounded dark:bg-red-500 disabled:dark:bg-red-800 disabled:dark:text-gray-500"
+              disabled={!(isValid && dirty) || isSubmitting}
+            >
+              Register
             </button>
           </Form>
         )}
       </Formik>
+      {generalError && (
+        <div className="mt-2 w-1/2 rounded bg-red-500 p-2 text-center text-white">
+          {generalError}
+        </div>
+      )}
       <div>
         <Link to="/login" className="text-red-500">
           Login

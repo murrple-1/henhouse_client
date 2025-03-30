@@ -1,8 +1,9 @@
 import { Link } from '@remix-run/react';
-import React, { useCallback, useContext } from 'react';
+import React, { useCallback, useContext, useState } from 'react';
 
 import { getCSRFToken } from '~/api/csrftoken.lib';
 import { logout } from '~/api/http/auth.http';
+import { Modal } from '~/components/modal';
 import { IsLoggedInContext } from '~/contexts/is-logged-in';
 import { useConfig } from '~/hooks/use-config';
 
@@ -11,7 +12,15 @@ export const Header: React.FC = () => {
 
   const isLoggedInContext = useContext(IsLoggedInContext);
 
-  const doLogout = useCallback(async () => {
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  const onLogoutModalRequestClose = useCallback(() => {
+    setIsLogoutModalOpen(false);
+  }, [setIsLogoutModalOpen]);
+
+  const onLogoutModalYesClick = useCallback(async () => {
+    setIsLogoutModalOpen(false);
+
     if (isLoggedInContext === null) {
       throw new Error('isLoggedInContext null');
     }
@@ -29,7 +38,11 @@ export const Header: React.FC = () => {
 
     await logout(host, null, csrfToken);
     isLoggedInContext.setIsLoggedIn(false);
-  }, [isLoggedInContext, configService]);
+  }, [isLoggedInContext, configService, setIsLogoutModalOpen]);
+
+  const doLogout = useCallback(() => {
+    setIsLogoutModalOpen(true);
+  }, [setIsLogoutModalOpen]);
 
   const onLogoutClick = useCallback(async () => await doLogout(), [doLogout]);
 
@@ -72,12 +85,36 @@ export const Header: React.FC = () => {
       ];
 
   return (
-    <header className="mb-4 flex min-h-8 max-w-full flex-row bg-sky-300">
-      <Link to="/" className="ml-4 text-black">
-        Henhouse
-      </Link>
-      <span className="flex-grow" />
-      {rightLinks}
-    </header>
+    <>
+      <header className="mb-4 flex min-h-8 max-w-full flex-row bg-sky-300">
+        <Link to="/" className="ml-4 text-black">
+          Henhouse
+        </Link>
+        <span className="flex-grow" />
+        {rightLinks}
+      </header>
+      <Modal
+        isOpen={isLogoutModalOpen}
+        onRequestClose={onLogoutModalRequestClose}
+        contentLabel="Logout Modal"
+      >
+        <div>Are you sure you want to logout?</div>
+        <div className="mt-2 flex flex-row">
+          <button
+            className="w-24 rounded dark:bg-red-500"
+            onClick={onLogoutModalYesClick}
+          >
+            Yes
+          </button>
+          <span className="flex-grow" />
+          <button
+            className="w-24 rounded dark:bg-red-500"
+            onClick={onLogoutModalRequestClose}
+          >
+            No
+          </button>
+        </div>
+      </Modal>
+    </>
   );
 };

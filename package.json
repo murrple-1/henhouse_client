@@ -29,6 +29,7 @@
     "marked": "^15.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-modal": "^3.16.3",
     "vite-env-only": "^3.0.3",
     "zod": "^3.23.8"
   },
@@ -38,6 +39,7 @@
     "@types/insane": "^1.0.0",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",
+    "@types/react-modal": "^3.16.3",
     "@typescript-eslint/eslint-plugin": "^6.7.4",
     "@typescript-eslint/parser": "^6.7.4",
     "autoprefixer": "^10.4.19",

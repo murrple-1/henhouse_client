@@ -10,6 +10,7 @@ import {
 } from '@remix-run/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { PropsWithChildren, useEffect, useState } from 'react';
+import ReactModal from 'react-modal';
 
 import { getCSRFToken } from '~/api/http/auth.http';
 import { Header } from '~/components/header';
@@ -17,6 +18,8 @@ import { useConfig } from '~/hooks/use-config';
 
 import { IsLoggedInContextProvider } from './contexts/is-logged-in';
 import './tailwind.css';
+
+ReactModal.setAppElement('body');
 
 export const links: LinksFunction = () => [];
 

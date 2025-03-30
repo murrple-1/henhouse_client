@@ -15,6 +15,7 @@ import { getCSRFToken } from '~/api/http/auth.http';
 import { Header } from '~/components/header';
 import { useConfig } from '~/hooks/use-config';
 
+import { IsLoggedInContextProvider } from './contexts/is-logged-in';
 import './tailwind.css';
 
 export const links: LinksFunction = () => [];
@@ -115,7 +116,9 @@ const App: React.FC = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <InnerApp />
+      <IsLoggedInContextProvider>
+        <InnerApp />
+      </IsLoggedInContextProvider>
     </QueryClientProvider>
   );
 };

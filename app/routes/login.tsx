@@ -1,12 +1,13 @@
 import { MetaFunction } from '@remix-run/node';
 import { Link, useNavigate, useSearchParams } from '@remix-run/react';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useMemo, useState } from 'react';
 
 import { getCSRFToken } from '~/api/csrftoken.lib';
 import { login } from '~/api/http/auth.http';
 import { ResponseError } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
+import { IsLoggedInContext } from '~/contexts/is-logged-in';
 import { useConfig } from '~/hooks/use-config';
 
 export const meta: MetaFunction = () => {
@@ -27,6 +28,8 @@ const Index: React.FC = () => {
 
   const { data: configService } = useConfig();
   const navigate = useNavigate();
+
+  const isLoggedInContext = useContext(IsLoggedInContext);
 
   const [generalError, setGeneralError] = useState<string | null>(null);
 
@@ -51,13 +54,19 @@ const Index: React.FC = () => {
     async (values: FormValues, actions: FormikHelpers<FormValues>) => {
       setGeneralError(null);
 
+      if (isLoggedInContext === null) {
+        throw new Error('isLoggedInContext null');
+      }
+
       if (configService === undefined) {
         throw new Error('configSerive undefined');
       }
+
       const csrfToken = getCSRFToken(document.cookie);
       if (csrfToken === null) {
         throw new Error('csrfToken null');
       }
+
       const host = configService.get<string>('API_HOST') as string;
       try {
         await login(
@@ -70,7 +79,7 @@ const Index: React.FC = () => {
           csrfToken,
         );
 
-        // TODO GUI should change now that we are logged in
+        isLoggedInContext.setIsLoggedIn(true);
 
         const redirect = searchParams.get('redirect');
         if (redirect !== null) {
@@ -98,7 +107,7 @@ const Index: React.FC = () => {
       }
       actions.setSubmitting(false);
     },
-    [navigate, configService, searchParams, setGeneralError],
+    [navigate, configService, searchParams, setGeneralError, isLoggedInContext],
   );
 
   return (

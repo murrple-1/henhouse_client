@@ -6,7 +6,7 @@ const getSessionId__server = serverOnly$((cookieHeader: string) => {
   return cookie['sessionid'] ?? null;
 });
 
-const getSessionId__client = (_: string) => {
+const getSessionId__client = () => {
   return null;
 };
 
@@ -20,6 +20,6 @@ const setSessionId__server = serverOnly$(
   },
 );
 
-const setSessionId__client = (_: string | null, __: Headers) => {};
+const setSessionId__client = () => {};
 
 export const setSessionId = setSessionId__server ?? setSessionId__client;

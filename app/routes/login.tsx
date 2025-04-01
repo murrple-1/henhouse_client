@@ -1,12 +1,13 @@
 import { MetaFunction } from '@remix-run/node';
 import { Link, useNavigate, useSearchParams } from '@remix-run/react';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
-import React, { useCallback, useContext, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useMemo } from 'react';
 
 import { getCSRFToken } from '~/api/csrftoken.lib';
 import { login } from '~/api/http/auth.http';
 import { ResponseError } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
+import { AlertsContext } from '~/contexts/alerts';
 import { IsLoggedInContext } from '~/contexts/is-logged-in';
 import { useConfig } from '~/hooks/use-config';
 
@@ -30,8 +31,7 @@ const Index: React.FC = () => {
   const navigate = useNavigate();
 
   const isLoggedInContext = useContext(IsLoggedInContext);
-
-  const [generalError, setGeneralError] = useState<string | null>(null);
+  const alertsContext = useContext(AlertsContext);
 
   const initialValues = useMemo<FormValues>(
     () => ({ usernameEmail: '', password: '', stayLoggedIn: false }),
@@ -52,8 +52,6 @@ const Index: React.FC = () => {
 
   const onSubmit = useCallback(
     async (values: FormValues, actions: FormikHelpers<FormValues>) => {
-      setGeneralError(null);
-
       if (isLoggedInContext === null) {
         throw new Error('isLoggedInContext null');
       }
@@ -95,19 +93,33 @@ const Index: React.FC = () => {
         let errorHandled = false;
         if (error instanceof ResponseError) {
           if (error.status === 401) {
-            actions.setFieldError('password', 'Invalid username or password');
+            alertsContext.addAlert({
+              type: 'error',
+              message: 'Invalid username or password',
+              removalInfo: {
+                id: 'login:invalid',
+                timeout: 5000,
+              },
+            });
             errorHandled = true;
           }
         }
 
         if (!errorHandled) {
           console.error(error);
-          setGeneralError('An unknown error has occurred. Please try again');
+          alertsContext.addAlert({
+            type: 'error',
+            message: 'An unknown error has occurred. Please try again',
+            removalInfo: {
+              id: 'login:unknown-error',
+              timeout: 5000,
+            },
+          });
         }
       }
       actions.setSubmitting(false);
     },
-    [navigate, configService, searchParams, setGeneralError, isLoggedInContext],
+    [navigate, configService, searchParams, alertsContext, isLoggedInContext],
   );
 
   return (
@@ -159,11 +171,6 @@ const Index: React.FC = () => {
           </Form>
         )}
       </Formik>
-      {generalError && (
-        <div className="mt-2 w-1/2 rounded bg-red-500 p-2 text-center text-white">
-          {generalError}
-        </div>
-      )}
       <div>
         <Link to="/register" className="text-red-500">
           Register

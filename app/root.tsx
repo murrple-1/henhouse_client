@@ -13,10 +13,12 @@ import React, { PropsWithChildren, useEffect, useState } from 'react';
 import ReactModal from 'react-modal';
 
 import { getCSRFToken } from '~/api/http/auth.http';
+import { Alerts } from '~/components/alerts';
 import { Header } from '~/components/header';
+import { AlertsContextProvider } from '~/contexts/alerts';
+import { IsLoggedInContextProvider } from '~/contexts/is-logged-in';
 import { useConfig } from '~/hooks/use-config';
 
-import { IsLoggedInContextProvider } from './contexts/is-logged-in';
 import './tailwind.css';
 
 ReactModal.setAppElement('body');
@@ -98,6 +100,7 @@ const InnerApp: React.FC = () => {
   } else {
     return (
       <>
+        <Alerts />
         <Header />
         <Outlet />
       </>
@@ -120,7 +123,9 @@ const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <IsLoggedInContextProvider>
-        <InnerApp />
+        <AlertsContextProvider>
+          <InnerApp />
+        </AlertsContextProvider>
       </IsLoggedInContextProvider>
     </QueryClientProvider>
   );

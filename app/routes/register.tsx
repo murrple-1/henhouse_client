@@ -2,12 +2,13 @@ import { MetaFunction } from '@remix-run/node';
 import { Link, useNavigate } from '@remix-run/react';
 import { validate as validateEmail } from 'email-validator';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useMemo } from 'react';
 
 import { getCSRFToken } from '~/api/csrftoken.lib';
 import { register } from '~/api/http/auth.http';
 import { ResponseError } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
+import { AlertsContext } from '~/contexts/alerts';
 import { useConfig } from '~/hooks/use-config';
 
 export const meta: MetaFunction = () => {
@@ -28,7 +29,7 @@ const Index: React.FC = () => {
   const { data: configService } = useConfig();
   const navigate = useNavigate();
 
-  const [generalError, setGeneralError] = useState<string | null>(null);
+  const alertsContext = useContext(AlertsContext);
 
   const initialValues = useMemo<FormValues>(
     () => ({ username: '', email: '', password: '', passwordConfirm: '' }),
@@ -62,8 +63,6 @@ const Index: React.FC = () => {
 
   const onSubmit = useCallback(
     async (values: FormValues, actions: FormikHelpers<FormValues>) => {
-      setGeneralError(null);
-
       if (configService === undefined) {
         throw new Error('configSerive undefined');
       }
@@ -88,19 +87,33 @@ const Index: React.FC = () => {
         let errorHandled = false;
         if (error instanceof ResponseError) {
           if (error.status === 409) {
-            setGeneralError('Username or email already exists');
+            alertsContext.addAlert({
+              type: 'error',
+              message: 'Username or email already exists',
+              removalInfo: {
+                id: 'register:already-exists',
+                timeout: 5000,
+              },
+            });
             errorHandled = true;
           }
         }
 
         if (!errorHandled) {
           console.error(error);
-          setGeneralError('An unknown error has occurred. Please try again');
+          alertsContext.addAlert({
+            type: 'error',
+            message: 'An unknown error has occurred. Please try again',
+            removalInfo: {
+              id: 'register:unknown-error',
+              timeout: 5000,
+            },
+          });
         }
       }
       actions.setSubmitting(false);
     },
-    [navigate, configService, setGeneralError],
+    [navigate, configService, alertsContext],
   );
 
   return (
@@ -170,11 +183,6 @@ const Index: React.FC = () => {
           </Form>
         )}
       </Formik>
-      {generalError && (
-        <div className="mt-2 w-1/2 rounded bg-red-500 p-2 text-center text-white">
-          {generalError}
-        </div>
-      )}
       <div>
         <Link to="/login" className="text-red-500">
           Login

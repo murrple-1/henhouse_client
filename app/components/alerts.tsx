@@ -20,7 +20,7 @@ export const Alerts: React.FC = () => {
     const alertElements = alertsContext.alerts.map((alert, index) => {
       const classNameParts: string[] = [
         'flex',
-        'flex-grow',
+        'grow',
         'flex-row',
         'justify-center',
         'p-2',

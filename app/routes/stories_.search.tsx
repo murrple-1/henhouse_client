@@ -368,7 +368,7 @@ const View: React.FC = () => {
     selectedTagElements = selectedSearchTags.map((t, i) => (
       <div
         key={`selectedTagElements-${i}`}
-        className="mr-2 rounded p-1 dark:bg-green-900"
+        className="mr-2 rounded-sm p-1 dark:bg-green-900"
       >
         <span className="mr-1">{t.prettyName}</span>
         <FontAwesomeIcon
@@ -381,7 +381,7 @@ const View: React.FC = () => {
     ));
   } else {
     selectedTagElements = (
-      <div className="mr-2 rounded p-1 dark:bg-slate-600">None Selected</div>
+      <div className="mr-2 rounded-sm p-1 dark:bg-slate-600">None Selected</div>
     );
   }
 
@@ -423,7 +423,7 @@ const View: React.FC = () => {
     selectedCategoryElements = selectedSearchCategories.map((c, i) => (
       <div
         key={`selectedCategoryElements-${i}`}
-        className="mr-2 rounded p-1 dark:bg-green-900"
+        className="mr-2 rounded-sm p-1 dark:bg-green-900"
       >
         <span className="mr-1">{c.prettyName}</span>
         <FontAwesomeIcon
@@ -438,7 +438,7 @@ const View: React.FC = () => {
     ));
   } else {
     selectedCategoryElements = (
-      <div className="mr-2 rounded p-1 dark:bg-slate-600">None Selected</div>
+      <div className="mr-2 rounded-sm p-1 dark:bg-slate-600">None Selected</div>
     );
   }
 
@@ -485,7 +485,7 @@ const View: React.FC = () => {
               type="text"
               placeholder="Search for Stories"
             />
-            <div className="my-2 rounded p-2 dark:bg-gray-700">
+            <div className="my-2 rounded-sm p-2 dark:bg-gray-700">
               <h2>Search In:</h2>
               <div className="flex flex-row">
                 <label htmlFor="searchText_title" className="mr-2">
@@ -531,7 +531,7 @@ const View: React.FC = () => {
             <div className="text-sm text-gray-400">
               Double-click to select tags
             </div>
-            <select className="h-18 mb-2 border-2 border-slate-700" multiple>
+            <select className="mb-2 h-18 border-2 border-slate-700" multiple>
               {searchTagsOptionElements}
             </select>
             <label htmlFor="searchDateRange">Date Range:</label>
@@ -540,14 +540,14 @@ const View: React.FC = () => {
                 as="select"
                 id="searchDateRange"
                 name="searchDateRange"
-                className="mr-2 flex-grow border-2 border-slate-700"
+                className="mr-2 grow border-2 border-slate-700"
               >
                 {dateRangeOptionElements}
               </Field>
               <Field
                 as="select"
                 name="searchDateRangeBeyond"
-                className="flex-grow border-2 border-slate-700"
+                className="grow border-2 border-slate-700"
               >
                 {dateRangeBeyondOptionElements}
               </Field>
@@ -585,7 +585,10 @@ const View: React.FC = () => {
               className="mb-4 border-2 border-slate-700"
             />
             <div className="flex flex-row justify-center">
-              <button type="submit" className="w-1/2 rounded dark:bg-red-500">
+              <button
+                type="submit"
+                className="w-1/2 rounded-sm dark:bg-red-500"
+              >
                 Search
               </button>
             </div>

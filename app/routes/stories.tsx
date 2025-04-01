@@ -212,8 +212,8 @@ interface StoryCardProps {
 const StoryCard: React.FC<StoryCardProps> = memo(
   ({ storyWithUser: s, datetimeFormatter }) => {
     return (
-      <div className="mb-2 flex w-full flex-row rounded bg-sky-100 p-2">
-        <div className="flex flex-grow flex-col">
+      <div className="mb-2 flex w-full flex-row rounded-sm bg-sky-100 p-2">
+        <div className="flex grow flex-col">
           <div className="text-red-500">
             <Link to={`/stories/${s.uuid}`}>{s.title}</Link>
           </div>
@@ -411,7 +411,7 @@ const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
               <Field
                 type="text"
                 name="smartSearch"
-                className="flex-grow focus:outline-none"
+                className="grow focus:outline-hidden"
               />
               <button
                 type="submit"

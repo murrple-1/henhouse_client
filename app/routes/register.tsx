@@ -175,7 +175,7 @@ const Index: React.FC = () => {
             <div className="h-2" />
             <button
               type="submit"
-              className="w-1/2 rounded dark:bg-red-500 disabled:dark:bg-red-800 disabled:dark:text-gray-500"
+              className="w-1/2 rounded-sm dark:bg-red-500 dark:disabled:bg-red-800 dark:disabled:text-gray-500"
               disabled={!(isValid && dirty) || isSubmitting}
             >
               Register

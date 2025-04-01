@@ -118,7 +118,7 @@ const View: React.FC<Props> = ({ storyId }) => {
   const chapterElements = chapters?.map((chapter, index) => (
     <div
       key={chapter.uuid}
-      className="mb-2 flex w-full flex-row rounded bg-sky-100 p-2"
+      className="mb-2 flex w-full flex-row rounded-sm bg-sky-100 p-2"
     >
       <div className="flex flex-col">
         <div>
@@ -148,7 +148,7 @@ const View: React.FC<Props> = ({ storyId }) => {
       </div>
       <div className="mb-2">{story.synopsis}</div>
       <div className="h-1 w-full bg-slate-700" />
-      <div className="mb-4 mt-2 text-lg">Chapters</div>
+      <div className="mt-2 mb-4 text-lg">Chapters</div>
       <div className="w-full text-slate-800">{chapterElements}</div>
     </MainContainer>
   );

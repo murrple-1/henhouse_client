@@ -90,7 +90,7 @@ export const Header: React.FC = () => {
         <Link to="/" className="ml-4 text-black">
           Henhouse
         </Link>
-        <span className="flex-grow" />
+        <span className="grow" />
         {rightLinks}
       </header>
       <Modal
@@ -101,14 +101,14 @@ export const Header: React.FC = () => {
         <div>Are you sure you want to logout?</div>
         <div className="mt-2 flex flex-row">
           <button
-            className="w-24 rounded dark:bg-red-500"
+            className="w-24 rounded-sm dark:bg-red-500"
             onClick={onLogoutModalYesClick}
           >
             Yes
           </button>
-          <span className="flex-grow" />
+          <span className="grow" />
           <button
-            className="w-24 rounded dark:bg-red-500"
+            className="w-24 rounded-sm dark:bg-red-500"
             onClick={onLogoutModalRequestClose}
           >
             No

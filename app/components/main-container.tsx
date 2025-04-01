@@ -3,7 +3,7 @@ import { PropsWithChildren } from 'react';
 
 export const MainContainer: React.FC<PropsWithChildren> = ({ children }) => {
   return (
-    <section className="container mx-auto flex flex-col items-center rounded p-4 dark:bg-gray-800 dark:text-white">
+    <section className="container mx-auto flex flex-col items-center rounded-sm p-4 dark:bg-gray-800 dark:text-white">
       {children}
     </section>
   );

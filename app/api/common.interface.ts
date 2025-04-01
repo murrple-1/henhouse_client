@@ -1,6 +1,7 @@
 import { setCSRFToken } from '~/api/csrftoken.lib';
 import { setSessionId } from '~/api/sessionid.lib';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface CommonOptions {}
 
 export async function toHeaders(

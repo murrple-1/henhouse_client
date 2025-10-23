@@ -10,6 +10,7 @@ import { MainContainer } from '~/components/main-container';
 import { AlertsContext } from '~/contexts/alerts';
 import { IsLoggedInContext } from '~/contexts/is-logged-in';
 import { useConfig } from '~/hooks/use-config';
+import { handleError } from '~/libs/http-error';
 
 export const meta: MetaFunction = () => {
   return [
@@ -106,15 +107,7 @@ const Index: React.FC = () => {
         }
 
         if (!errorHandled) {
-          console.error(error);
-          alertsContext.addAlert({
-            type: 'error',
-            message: 'An unknown error has occurred. Please try again',
-            removalInfo: {
-              id: 'login:unknown-error',
-              timeout: 5000,
-            },
-          });
+          handleError(error, isLoggedInContext, alertsContext, navigate);
         }
       }
       actions.setSubmitting(false);

@@ -1,5 +1,5 @@
 import { LoaderFunction, MetaFunction } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
+import { useLoaderData, useNavigate } from '@remix-run/react';
 import {
   DehydratedState,
   HydrationBoundary,
@@ -7,11 +7,14 @@ import {
   dehydrate,
   useQuery,
 } from '@tanstack/react-query';
-import React from 'react';
+import React, { useContext } from 'react';
 
 import { getUserDetails } from '~/api/http/auth.http';
 import { getSessionId } from '~/api/sessionid.lib';
+import { AlertsContext } from '~/contexts/alerts';
+import { IsLoggedInContext } from '~/contexts/is-logged-in';
 import { useConfig } from '~/hooks/use-config';
+import { handleError } from '~/libs/http-error';
 
 export const meta: MetaFunction<typeof loader> = () => {
   return [
@@ -48,6 +51,11 @@ export const loader: LoaderFunction = async ({
 };
 
 const View: React.FC = () => {
+  const navigate = useNavigate();
+
+  const isLoggedInContext = useContext(IsLoggedInContext);
+  const alertsContext = useContext(AlertsContext);
+
   const { data: configService } = useConfig();
 
   const { data: user } = useQuery({
@@ -57,7 +65,9 @@ const View: React.FC = () => {
         throw new Error('configSerive undefined');
       }
       const host = configService.get<string>('API_HOST') as string;
-      return getUserDetails(host, null);
+      return getUserDetails(host, null).catch(reason => {
+        handleError(reason, isLoggedInContext, alertsContext, navigate);
+      });
     },
     enabled: configService !== undefined,
   });

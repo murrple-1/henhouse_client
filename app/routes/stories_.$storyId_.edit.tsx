@@ -10,7 +10,7 @@ export const meta: MetaFunction = () => {
 };
 
 const Index: React.FC = () => {
-  return <MainContainer>Stories/storyId/chapterNum/edit</MainContainer>;
+  return <MainContainer>Stories/storyId/edit</MainContainer>;
 };
 
 export default Index;

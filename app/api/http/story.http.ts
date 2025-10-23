@@ -78,6 +78,8 @@ export async function getStories(
 
 export interface CreateStoryInput {
   title: string;
+  synopsis: string;
+  category: string;
   tags: string[];
 }
 
@@ -105,6 +107,8 @@ export async function createStory(
 
 export interface UpdateStoryInput {
   title?: string;
+  synopsis?: string;
+  category?: string;
   tags?: string[];
 }
 

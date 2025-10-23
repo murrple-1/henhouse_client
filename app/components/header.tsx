@@ -1,16 +1,21 @@
-import { Link } from '@remix-run/react';
+import { Link, useNavigate } from '@remix-run/react';
 import React, { useCallback, useContext, useState } from 'react';
 
 import { getCSRFToken } from '~/api/csrftoken.lib';
 import { logout } from '~/api/http/auth.http';
 import { Modal } from '~/components/modal';
+import { AlertsContext } from '~/contexts/alerts';
 import { IsLoggedInContext } from '~/contexts/is-logged-in';
 import { useConfig } from '~/hooks/use-config';
+import { handleError } from '~/libs/http-error';
 
 export const Header: React.FC = () => {
-  const { data: configService } = useConfig();
+  const navigate = useNavigate();
 
   const isLoggedInContext = useContext(IsLoggedInContext);
+  const alertsContext = useContext(AlertsContext);
+
+  const { data: configService } = useConfig();
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
@@ -36,8 +41,13 @@ export const Header: React.FC = () => {
 
     const host = configService.get<string>('API_HOST') as string;
 
-    await logout(host, null, csrfToken);
+    try {
+      await logout(host, null, csrfToken);
+    } catch (error: unknown) {
+      handleError(error, isLoggedInContext, alertsContext, navigate);
+    }
     isLoggedInContext.setIsLoggedIn(false);
+    navigate('/');
   }, [isLoggedInContext, configService, setIsLogoutModalOpen]);
 
   const doLogout = useCallback(() => {

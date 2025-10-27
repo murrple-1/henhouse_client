@@ -19,6 +19,7 @@ const ZStory = z.object({
   title: z.string(),
   synopsis: z.string(),
   author: z.string().uuid(),
+  category: z.string(),
   createdAt: z
     .union([z.string().datetime({ offset: true }), z.date()])
     .transform(arg => new Date(arg)),

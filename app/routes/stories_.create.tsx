@@ -121,7 +121,15 @@ const View: React.FC = () => {
   const validate = useCallback((values: FormValues) => {
     const errors: Record<string, string> = {};
     if (values.title.trim() === '') {
-      errors.usernameEmail = 'Required';
+      errors.title = 'Required';
+    }
+
+    if (values.synopsis.trim() === '') {
+      errors.synopsis = 'Required';
+    }
+
+    if (values.category.trim() === '') {
+      errors.category = 'Required';
     }
 
     return errors;

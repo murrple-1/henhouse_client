@@ -1,17 +1,15 @@
-import {
-  faBookmark,
-  faGear,
-  faMagnifyingGlass,
-} from '@fortawesome/free-solid-svg-icons';
+import { faGear } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type {
   LoaderFunction,
   LoaderFunctionArgs,
   MetaFunction,
+  TypedResponse,
 } from '@remix-run/node';
 import {
   Link,
   ShouldRevalidateFunction,
+  redirect,
   useLoaderData,
   useSearchParams,
 } from '@remix-run/react';
@@ -22,14 +20,11 @@ import {
   dehydrate,
   useQuery,
 } from '@tanstack/react-query';
-import { Field, Form, Formik, FormikHelpers } from 'formik';
 import PropTypes from 'prop-types';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
-import {
-  StoryWithUser,
-  getStoriesWithUsers,
-} from '~/api/facade/story-with-user.http';
+import { getUserDetails } from '~/api/http/auth.http';
+import { Story, getStories } from '~/api/http/story.http';
 import { getSessionId } from '~/api/sessionid.lib';
 import { MainContainer } from '~/components/main-container';
 import { Pagination } from '~/components/pagination';
@@ -46,57 +41,8 @@ function escapeSearchQuery(s: string): string {
   return s.replace(/"/g, '\\"');
 }
 
-function generateSearchQuery(
-  smartSearch: string | null,
-  searchTitle: string | null,
-  searchSynopsis: string | null,
-  searchStoryText: string | null,
-  searchTags: string | null,
-  searchDateRange: string | null,
-  searchCategories: string | null,
-  searchAuthorName: string | null,
-) {
-  const searchParts: string[] = [];
-  if (smartSearch) {
-    const escapedSmartSearch = escapeSearchQuery(smartSearch);
-    searchParts.push(
-      `(title:"${escapedSmartSearch}" OR synopsis:"${escapedSmartSearch}" OR storyText:"${escapedSmartSearch}")`,
-    );
-  }
-
-  if (searchTitle) {
-    searchParts.push(`title:"${escapeSearchQuery(searchTitle)}"`);
-  }
-
-  if (searchSynopsis) {
-    searchParts.push(`synopsis:"${escapeSearchQuery(searchSynopsis)}"`);
-  }
-
-  if (searchStoryText) {
-    searchParts.push(`storyText:"${escapeSearchQuery(searchStoryText)}"`);
-  }
-
-  if (searchTags) {
-    searchParts.push(
-      ...searchTags.split(',').map(tag => `tag:"${escapeSearchQuery(tag)}"`),
-    );
-  }
-
-  if (searchDateRange) {
-    searchParts.push(
-      `publishedAt_delta:"${escapeSearchQuery(searchDateRange)}"`,
-    );
-  }
-
-  if (searchCategories) {
-    searchParts.push(`category:"${escapeSearchQuery(searchCategories)}"`);
-  }
-
-  if (searchAuthorName) {
-    searchParts.push(`authorName:"${escapeSearchQuery(searchAuthorName)}"`);
-  }
-
-  return searchParts.length > 0 ? searchParts.join(' AND ') : null;
+function generateSearchQuery(myAuthorName: string) {
+  return `authorName:"${escapeSearchQuery(myAuthorName)}"`;
 }
 
 interface PageQueryOptions {
@@ -123,7 +69,7 @@ function generateSearchOptions(
 interface LoaderData {
   dehydratedState: DehydratedState;
   limit: number;
-  smartSearch: string | null;
+  username: string;
 }
 
 const DEFAULT_LIMIT = 20;
@@ -131,7 +77,7 @@ const DEFAULT_SORT = 'title:ASC';
 
 export const loader: LoaderFunction = async ({
   request,
-}: LoaderFunctionArgs): Promise<LoaderData> => {
+}: LoaderFunctionArgs): Promise<LoaderData | TypedResponse> => {
   const cookieHeader = request.headers.get('Cookie');
   let sessionId: string | null;
   if (cookieHeader !== null) {
@@ -140,15 +86,17 @@ export const loader: LoaderFunction = async ({
     sessionId = null;
   }
 
+  if (sessionId === null) {
+    return redirect('/login');
+  }
+
   const url = new URL(request.url);
 
   const limitQuery = url.searchParams.get('limit');
   const offsetQuery = url.searchParams.get('offset');
-  const smartSearchQuery = url.searchParams.get('search');
 
   let limit: number = DEFAULT_LIMIT;
   let offset: number = 0;
-  let smartSearch: string | null = null;
 
   if (limitQuery !== null) {
     limit = parseInt(limitQuery, 10);
@@ -164,72 +112,60 @@ export const loader: LoaderFunction = async ({
     }
   }
 
-  if (smartSearchQuery !== null) {
-    smartSearch = smartSearchQuery;
-  }
-
   const queryClient = new QueryClient();
 
-  const searchQuery = generateSearchQuery(
-    smartSearch,
-    url.searchParams.get('searchTitle'),
-    url.searchParams.get('searchSynposis'),
-    url.searchParams.get('searchStoryText'),
-    url.searchParams.get('searchTags'),
-    url.searchParams.get('searchDateRange'),
-    url.searchParams.get('searchCategories'),
-    url.searchParams.get('searchAuthorName'),
-  );
+  const user = await queryClient.fetchQuery({
+    queryKey: ['user'],
+    queryFn: () => getUserDetails(process.env.API_HOST as string, sessionId),
+  });
+
+  const searchQuery = generateSearchQuery(user.username);
 
   // TODO sort
   const options = generateSearchOptions(limit, offset, searchQuery, null);
 
   await queryClient.prefetchQuery({
     queryKey: [
-      'stories:withUsers',
+      'stories',
       options.limit,
       options.offset,
       options.search,
       options.sort,
     ],
     queryFn: () =>
-      getStoriesWithUsers(process.env.API_HOST as string, options, sessionId),
+      getStories(process.env.API_HOST as string, options, sessionId),
   });
   return {
     dehydratedState: dehydrate(queryClient),
     limit,
-    smartSearch,
+    username: user.username,
   };
 };
 
 export const shouldRevalidate: ShouldRevalidateFunction = () => false;
 
 interface StoryCardProps {
-  storyWithUser: StoryWithUser;
+  story: Story;
   datetimeFormatter: Intl.DateTimeFormat;
 }
 
 const StoryCard: React.FC<StoryCardProps> = memo(
-  ({ storyWithUser: s, datetimeFormatter }) => {
+  ({ story: s, datetimeFormatter }) => {
     return (
       <div className="mb-2 flex w-full flex-row rounded-sm bg-sky-100 p-2">
         <div className="flex grow flex-col">
           <div className="text-red-500">
-            <Link to={`/stories/${s.uuid}`}>{s.title}</Link>
+            <Link to={`/stories/${s.uuid}/edit`}>{s.title}</Link>
           </div>
           <div>
             <div className="text-sm">{s.synopsis}</div>
           </div>
-          <div className="text-sm">
-            by{' '}
-            <Link to={`/user/${s.userUuid}`} className="text-red-500">
-              {s.username}
-            </Link>
-          </div>
         </div>
         <div className="ml-32 flex flex-col">
           <div className="flex flex-row justify-end">
-            <FontAwesomeIcon icon={faBookmark} height="1em" />
+            <Link to={`/stories/${s.uuid}/edit`}>
+              <FontAwesomeIcon icon={faGear} height="1em" />
+            </Link>
           </div>
           <div>
             {s.publishedAt !== null
@@ -243,13 +179,14 @@ const StoryCard: React.FC<StoryCardProps> = memo(
 );
 
 StoryCard.propTypes = {
-  storyWithUser: PropTypes.any.isRequired,
+  story: PropTypes.any.isRequired,
   datetimeFormatter: PropTypes.any.isRequired,
 };
 StoryCard.displayName = 'StoryCard';
 
 function paramsToSearchOptions(
   searchParams: URLSearchParams,
+  username: string,
 ): PageQueryOptions {
   const searchParamsLimit = searchParams.get('limit');
   let limit: number;
@@ -277,54 +214,39 @@ function paramsToSearchOptions(
   return generateSearchOptions(
     limit,
     offset,
-    generateSearchQuery(
-      searchParams.get('smartSearch'),
-      searchParams.get('searchTitle'),
-      searchParams.get('searchSynposis'),
-      searchParams.get('searchStoryText'),
-      searchParams.get('searchTags'),
-      searchParams.get('searchDateRange'),
-      searchParams.get('searchCategories'),
-      searchParams.get('searchAuthorName'),
-    ),
+    generateSearchQuery(username),
     null,
   );
 }
 
-interface SearchFormValues {
-  smartSearch: string;
-}
-
 interface Props {
   initialLimit: number;
-  initialSmartSearch: string | null;
+  username: string;
 }
 
-const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
+const View: React.FC<Props> = ({ initialLimit, username }) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const datetimeFormatter = useMemo(() => new Intl.DateTimeFormat(), []);
 
   const [limit, setLimit] = useState(initialLimit);
-  const initialSearchValues = useMemo<SearchFormValues>(
-    () => ({ smartSearch: initialSmartSearch ?? '' }),
-    [initialSmartSearch],
-  );
 
   const [currentSearchOptions, setCurrentSearchOptions] =
-    useState<PageQueryOptions>(() => paramsToSearchOptions(searchParams));
+    useState<PageQueryOptions>(() =>
+      paramsToSearchOptions(searchParams, username),
+    );
 
   useEffect(() => {
-    const options = paramsToSearchOptions(searchParams);
+    const options = paramsToSearchOptions(searchParams, username);
     setLimit(options.limit);
     setCurrentSearchOptions(options);
-  }, [setLimit, setCurrentSearchOptions, searchParams]);
+  }, [setLimit, setCurrentSearchOptions, searchParams, username]);
 
   const { data: configService } = useConfig();
 
   const { data: stories } = useQuery({
     queryKey: [
-      'stories:withUsers',
+      'stories',
       currentSearchOptions.limit,
       currentSearchOptions.offset,
       currentSearchOptions.search,
@@ -335,7 +257,7 @@ const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
         throw new Error('configSerive undefined');
       }
       const host = configService.get<string>('API_HOST') as string;
-      return getStoriesWithUsers(host, currentSearchOptions, null);
+      return getStories(host, currentSearchOptions, null);
     },
     enabled: configService !== undefined,
   });
@@ -356,23 +278,13 @@ const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
     [setLimit, setSearchParams, searchParams],
   );
 
-  const onSearchSubmit = useCallback(
-    (values: SearchFormValues, actions: FormikHelpers<SearchFormValues>) => {
-      const params = new URLSearchParams();
-      params.set('smartSearch', values.smartSearch);
-      setSearchParams(params);
-      actions.setSubmitting(false);
-    },
-    [setSearchParams],
-  );
-
   const toHrefFn = useCallback(
     (offset: number, limit: number) => {
       const params = new URLSearchParams(searchParams);
       params.set('offset', offset.toString(10));
       params.set('limit', limit.toString(10));
 
-      return `/stories?${params.toString()}`;
+      return `/stories/my?${params.toString()}`;
     },
     [searchParams],
   );
@@ -380,7 +292,7 @@ const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
   const storyTitleElements = stories?.items.map((s, i) => (
     <StoryCard
       key={`storyTitles-${i}`}
-      storyWithUser={s}
+      story={s}
       datetimeFormatter={datetimeFormatter}
     />
   ));
@@ -404,31 +316,6 @@ const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
 
   return (
     <MainContainer>
-      <div className="mb-2 w-1/2 border-2 border-slate-700">
-        <Formik initialValues={initialSearchValues} onSubmit={onSearchSubmit}>
-          {() => (
-            <Form className="flex flex-row">
-              <Field
-                type="text"
-                name="smartSearch"
-                className="grow focus:outline-hidden"
-              />
-              <button
-                type="submit"
-                className="border-l border-white bg-red-500 px-2"
-              >
-                <FontAwesomeIcon icon={faMagnifyingGlass} height="1em" />
-              </button>
-              <Link
-                to="/stories/search"
-                className="border-l border-white bg-red-500 px-1"
-              >
-                <FontAwesomeIcon icon={faGear} height="1em" />
-              </Link>
-            </Form>
-          )}
-        </Formik>
-      </div>
       <div className="w-full text-slate-800">{storyTitleElements}</div>
       <div className="mt-3 flex flex-row border-t border-gray-200 pt-1">
         <div className="mr-2 flex flex-row items-end">
@@ -451,11 +338,11 @@ const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
 };
 
 const Index: React.FC = () => {
-  const { dehydratedState, limit, smartSearch } = useLoaderData<LoaderData>();
+  const { dehydratedState, limit, username } = useLoaderData<LoaderData>();
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <View initialLimit={limit} initialSmartSearch={smartSearch} />
+      <View initialLimit={limit} username={username} />
     </HydrationBoundary>
   );
 };

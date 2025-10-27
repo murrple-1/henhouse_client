@@ -11,7 +11,6 @@ export function handleError(
   navigate: NavigateFunction,
 ) {
   let errorHandled = false;
-  debugger;
 
   if (error instanceof ResponseError) {
     switch (error.status) {

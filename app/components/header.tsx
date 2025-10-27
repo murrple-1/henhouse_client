@@ -48,7 +48,13 @@ export const Header: React.FC = () => {
     }
     isLoggedInContext.setIsLoggedIn(false);
     navigate('/');
-  }, [isLoggedInContext, configService, setIsLogoutModalOpen]);
+  }, [
+    isLoggedInContext,
+    alertsContext,
+    navigate,
+    configService,
+    setIsLogoutModalOpen,
+  ]);
 
   const doLogout = useCallback(() => {
     setIsLogoutModalOpen(true);

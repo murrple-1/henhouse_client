@@ -86,7 +86,7 @@ export const loader: LoaderFunction = async ({
     sessionId = null;
   }
 
-  if (sessionId === null) {
+  if (!sessionId) {
     return redirect('/login');
   }
 

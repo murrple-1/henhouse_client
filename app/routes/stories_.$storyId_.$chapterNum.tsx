@@ -9,7 +9,11 @@ import {
   LoaderFunctionArgs,
   MetaFunction,
 } from '@remix-run/node';
-import { Link, useLoaderData } from '@remix-run/react';
+import {
+  Link,
+  ShouldRevalidateFunction,
+  useLoaderData,
+} from '@remix-run/react';
 import {
   DehydratedState,
   HydrationBoundary,
@@ -111,6 +115,8 @@ export const loader: LoaderFunction = async ({
     totalChapters: chapters.length,
   };
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = () => false;
 
 interface Props {
   storyId: string;

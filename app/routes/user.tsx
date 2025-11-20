@@ -1,5 +1,10 @@
-import { LoaderFunction, MetaFunction } from '@remix-run/node';
-import { useLoaderData, useNavigate } from '@remix-run/react';
+import { LoaderFunction, MetaFunction, TypedResponse } from '@remix-run/node';
+import {
+  ShouldRevalidateFunction,
+  redirect,
+  useLoaderData,
+  useNavigate,
+} from '@remix-run/react';
 import {
   DehydratedState,
   HydrationBoundary,
@@ -29,13 +34,17 @@ interface LoaderData {
 
 export const loader: LoaderFunction = async ({
   request,
-}): Promise<LoaderData> => {
+}): Promise<LoaderData | TypedResponse> => {
   const cookieHeader = request.headers.get('Cookie');
   let sessionId: string | null;
   if (cookieHeader !== null) {
     sessionId = getSessionId(cookieHeader);
   } else {
     sessionId = null;
+  }
+
+  if (!sessionId) {
+    return redirect('/login');
   }
 
   const queryClient = new QueryClient();
@@ -49,6 +58,8 @@ export const loader: LoaderFunction = async ({
     dehydratedState: dehydrate(queryClient),
   };
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = () => false;
 
 const View: React.FC = () => {
   const navigate = useNavigate();

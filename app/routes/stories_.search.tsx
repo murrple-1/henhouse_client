@@ -1,7 +1,11 @@
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { LoaderFunction, MetaFunction } from '@remix-run/node';
-import { useLoaderData, useNavigate } from '@remix-run/react';
+import {
+  ShouldRevalidateFunction,
+  useLoaderData,
+  useNavigate,
+} from '@remix-run/react';
 import {
   DehydratedState,
   HydrationBoundary,
@@ -59,6 +63,8 @@ export const loader: LoaderFunction = async ({
     dehydratedState: dehydrate(queryClient),
   };
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = () => false;
 
 enum DateRange {
   ANY = 'any',

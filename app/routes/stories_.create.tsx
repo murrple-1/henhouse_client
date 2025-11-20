@@ -4,7 +4,12 @@ import {
   MetaFunction,
   TypedResponse,
 } from '@remix-run/node';
-import { redirect, useLoaderData, useNavigate } from '@remix-run/react';
+import {
+  ShouldRevalidateFunction,
+  redirect,
+  useLoaderData,
+  useNavigate,
+} from '@remix-run/react';
 import {
   DehydratedState,
   HydrationBoundary,
@@ -53,6 +58,7 @@ export const loader: LoaderFunction = async ({
   }
 
   const queryClient = new QueryClient();
+
   await queryClient.prefetchQuery({
     queryKey: ['categories'],
     queryFn: () =>
@@ -72,6 +78,8 @@ export const loader: LoaderFunction = async ({
     dehydratedState: dehydrate(queryClient),
   };
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = () => false;
 
 interface FormValues {
   title: string;

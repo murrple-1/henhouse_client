@@ -63,9 +63,9 @@ export const Header: React.FC = () => {
   const onLogoutClick = useCallback(async () => await doLogout(), [doLogout]);
 
   const onLogoutKeyUp = useCallback(
-    async (event: React.KeyboardEvent<HTMLDivElement>) => {
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Enter') {
-        await doLogout();
+        doLogout();
       }
     },
     [doLogout],
@@ -75,6 +75,13 @@ export const Header: React.FC = () => {
     ? [
         <Link key="rightLinks-user" to="/user" className="mr-4 text-black">
           Account
+        </Link>,
+        <Link
+          key="rightLinks-my-stories"
+          to="/stories/my"
+          className="mr-4 text-black"
+        >
+          My Stories
         </Link>,
         <div
           key="rightLinks-logout"

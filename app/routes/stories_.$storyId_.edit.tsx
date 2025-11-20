@@ -5,27 +5,34 @@ import {
   LoaderFunctionArgs,
   MetaFunction,
   TypedResponse,
-  redirect,
 } from '@remix-run/node';
-import { Link, useLoaderData, useNavigate } from '@remix-run/react';
+import {
+  Link,
+  ShouldRevalidateFunction,
+  redirect,
+  useLoaderData,
+  useNavigate,
+} from '@remix-run/react';
 import {
   DehydratedState,
   HydrationBoundary,
   QueryClient,
   dehydrate,
   useQuery,
+  useQueryClient,
 } from '@tanstack/react-query';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
 import PropTypes from 'prop-types';
-import { useCallback, useContext, useMemo } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { getCSRFToken } from '~/api/csrftoken.lib';
 import { getCategories } from '~/api/http/category.http';
-import { getChapters } from '~/api/http/chapter.http';
+import { deleteChapter, getChapters } from '~/api/http/chapter.http';
 import { getStory, updateStory } from '~/api/http/story.http';
 import { getSessionId } from '~/api/sessionid.lib';
 import { allPages } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
+import { Modal } from '~/components/modal';
 import { AlertsContext } from '~/contexts/alerts';
 import { IsLoggedInContext } from '~/contexts/is-logged-in';
 import { useConfig } from '~/hooks/use-config';
@@ -55,7 +62,7 @@ export const loader: LoaderFunction = async ({
     sessionId = null;
   }
 
-  if (sessionId === null) {
+  if (!sessionId) {
     return redirect('/login');
   }
 
@@ -103,6 +110,8 @@ export const loader: LoaderFunction = async ({
   };
 };
 
+export const shouldRevalidate: ShouldRevalidateFunction = () => false;
+
 interface Props {
   storyId: string;
 }
@@ -121,6 +130,8 @@ const View: React.FC<Props> = ({ storyId }) => {
   const alertsContext = useContext(AlertsContext);
 
   const { data: configService } = useConfig();
+
+  const queryClient = useQueryClient();
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -168,6 +179,67 @@ const View: React.FC<Props> = ({ storyId }) => {
     },
     enabled: configService !== undefined,
   });
+
+  const [isDeleteChapterModalOpen, setIsDeleteChapterModalOpen] =
+    useState(false);
+
+  const [deleteChapterUuid, setDeleteChapterUuid] = useState<string | null>(
+    null,
+  );
+
+  const onDeleteChapterModalRequestClose = useCallback(() => {
+    setIsDeleteChapterModalOpen(false);
+  }, [setIsDeleteChapterModalOpen]);
+
+  const onDeleteChapterModalYesClick = useCallback(async () => {
+    setIsDeleteChapterModalOpen(false);
+
+    if (isLoggedInContext === null) {
+      throw new Error('isLoggedInContext null');
+    }
+
+    if (configService === undefined) {
+      throw new Error('configSerive undefined');
+    }
+
+    const csrfToken = getCSRFToken(document.cookie);
+    if (csrfToken === null) {
+      throw new Error('csrfToken null');
+    }
+
+    if (chapters === undefined) {
+      throw new Error('chapters undefined');
+    }
+
+    if (deleteChapterUuid === null) {
+      throw new Error('deleteChapterUuid null');
+    }
+
+    const host = configService.get<string>('API_HOST') as string;
+
+    try {
+      await deleteChapter(host, deleteChapterUuid, csrfToken, null);
+    } catch (error: unknown) {
+      handleError(error, isLoggedInContext, alertsContext, navigate);
+      return;
+    }
+    queryClient.setQueryData(
+      ['story', storyId, 'chapters'],
+      chapters.filter(chapter => chapter.uuid !== deleteChapterUuid),
+    );
+    setDeleteChapterUuid(null);
+    setIsDeleteChapterModalOpen(false);
+  }, [
+    isLoggedInContext,
+    alertsContext,
+    navigate,
+    configService,
+    setIsDeleteChapterModalOpen,
+    chapters,
+    deleteChapterUuid,
+    queryClient,
+    storyId,
+  ]);
 
   const initialValues = useMemo<FormValues>(
     () => ({
@@ -265,7 +337,14 @@ const View: React.FC<Props> = ({ storyId }) => {
             <FontAwesomeIcon icon={faGear} height="1em" />
           </Link>
           <div role="button" className="ml-2">
-            <FontAwesomeIcon icon={faX} height="1em" />
+            <FontAwesomeIcon
+              icon={faX}
+              height="1em"
+              onClick={() => {
+                setDeleteChapterUuid(chapter.uuid);
+                setIsDeleteChapterModalOpen(true);
+              }}
+            />
           </div>
         </div>
       </div>
@@ -273,80 +352,113 @@ const View: React.FC<Props> = ({ storyId }) => {
   ));
 
   return (
-    <MainContainer>
-      <Formik
-        initialValues={initialValues}
-        onSubmit={onSubmit}
-        validate={validate}
+    <>
+      <MainContainer>
+        <Formik
+          initialValues={initialValues}
+          onSubmit={onSubmit}
+          validate={validate}
+        >
+          {({ isSubmitting, isValid, dirty }) => (
+            <Form className="flex w-full flex-col items-center p-2">
+              <Field
+                type="text"
+                name="title"
+                className="w-1/2 border-2 border-slate-700"
+                placeholder="Title"
+              />
+              <ErrorMessage
+                name="title"
+                component="div"
+                className="text-red-600"
+              />
+              <div className="h-2" />
+              <Field
+                type="text"
+                name="synopsis"
+                className="w-1/2 border-2 border-slate-700"
+                placeholder="Synopsis"
+              />
+              <ErrorMessage
+                name="synopsis"
+                component="div"
+                className="text-red-600"
+              />
+              <div className="h-2" />
+              <Field
+                as="select"
+                name="category"
+                className="w-1/2 border-2 border-slate-700"
+              >
+                {categoryOptions}
+              </Field>
+              <ErrorMessage
+                name="category"
+                component="div"
+                className="text-red-600"
+              />
+              <div className="h-2" />
+              <Field
+                type="text"
+                name="tagsString"
+                className="w-1/2 border-2 border-slate-700"
+                placeholder="Tags"
+              />
+              <ErrorMessage
+                name="tagsString"
+                component="div"
+                className="text-red-600"
+              />
+              <div className="h-2" />
+              <button
+                type="submit"
+                className="mt-2 w-1/2 rounded-sm dark:bg-red-500 dark:disabled:bg-red-800 dark:disabled:text-gray-500"
+                disabled={!(isValid && dirty) || isSubmitting}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                className="mt-2 w-1/2 rounded-sm dark:bg-red-500 dark:disabled:bg-red-800 dark:disabled:text-gray-500"
+              >
+                Delete
+              </button>
+            </Form>
+          )}
+        </Formik>
+        <div className="h-1 w-full bg-slate-700" />
+        <div className="mt-2 mb-4 text-lg">Chapters</div>
+        <Link
+          to={`/stories/${storyId}/chapter/create`}
+          className="text-red-500"
+        >
+          Add Chapter
+        </Link>
+        <div className="w-full text-slate-800">{chapterElements}</div>
+      </MainContainer>
+      <Modal
+        isOpen={isDeleteChapterModalOpen}
+        onRequestClose={onDeleteChapterModalRequestClose}
+        contentLabel="Delete Chapter Modal"
       >
-        {({ isSubmitting, isValid, dirty }) => (
-          <Form className="flex w-full flex-col items-center p-2">
-            <Field
-              type="text"
-              name="title"
-              className="w-1/2 border-2 border-slate-700"
-              placeholder="Title"
-            />
-            <ErrorMessage
-              name="title"
-              component="div"
-              className="text-red-600"
-            />
-            <div className="h-2" />
-            <Field
-              type="text"
-              name="synopsis"
-              className="w-1/2 border-2 border-slate-700"
-              placeholder="Synopsis"
-            />
-            <ErrorMessage
-              name="synopsis"
-              component="div"
-              className="text-red-600"
-            />
-            <div className="h-2" />
-            <Field
-              as="select"
-              name="category"
-              className="w-1/2 border-2 border-slate-700"
-            >
-              {categoryOptions}
-            </Field>
-            <ErrorMessage
-              name="category"
-              component="div"
-              className="text-red-600"
-            />
-            <div className="h-2" />
-            <Field
-              type="text"
-              name="tagsString"
-              className="w-1/2 border-2 border-slate-700"
-              placeholder="Tags"
-            />
-            <ErrorMessage
-              name="tagsString"
-              component="div"
-              className="text-red-600"
-            />
-            <div className="h-2" />
-            <button
-              type="submit"
-              className="mt-2 w-1/2 rounded-sm dark:bg-red-500 dark:disabled:bg-red-800 dark:disabled:text-gray-500"
-              disabled={!(isValid && dirty) || isSubmitting}
-            >
-              Save
-            </button>
-          </Form>
-        )}
-      </Formik>
-      <div className="h-1 w-full bg-slate-700" />
-      <div className="mt-2 mb-4 text-lg">Chapters</div>
-      <Link to={`/stories/${storyId}/chapter/create`} className="text-red-500">
-        Add Chapter
-      </Link>
-      <div className="w-full text-slate-800">{chapterElements}</div>
-    </MainContainer>
+        <div>Are you sure you want to delete?</div>
+        <div className="mt-2 flex flex-row">
+          <button
+            className="w-24 rounded-sm dark:bg-red-500"
+            onClick={onDeleteChapterModalYesClick}
+          >
+            Yes
+          </button>
+          <span className="grow" />
+          <button
+            className="w-24 rounded-sm dark:bg-red-500"
+            onClick={onDeleteChapterModalRequestClose}
+          >
+            No
+          </button>
+        </div>
+      </Modal>
+    </>
   );
 };
 

@@ -23,7 +23,7 @@ import {
 } from '@tanstack/react-query';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
 import PropTypes from 'prop-types';
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useMemo, useState } from 'react';
 
 import { getCSRFToken } from '~/api/csrftoken.lib';
 import { getCategories } from '~/api/http/category.http';
@@ -63,7 +63,10 @@ export const loader: LoaderFunction = async ({
   }
 
   if (!sessionId) {
-    return redirect('/login');
+    const url = new URL(request.url);
+    return redirect(
+      `/login?redirectTo=${encodeURIComponent(url.pathname + url.search)}`,
+    );
   }
 
   const storyId = params.storyId as string;
@@ -192,12 +195,6 @@ const View: React.FC<Props> = ({ storyId }) => {
   }, [setIsDeleteChapterModalOpen]);
 
   const onDeleteChapterModalYesClick = useCallback(async () => {
-    setIsDeleteChapterModalOpen(false);
-
-    if (isLoggedInContext === null) {
-      throw new Error('isLoggedInContext null');
-    }
-
     if (configService === undefined) {
       throw new Error('configSerive undefined');
     }

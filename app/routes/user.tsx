@@ -44,7 +44,10 @@ export const loader: LoaderFunction = async ({
   }
 
   if (!sessionId) {
-    return redirect('/login');
+    const url = new URL(request.url);
+    return redirect(
+      `/login?redirectTo=${encodeURIComponent(url.pathname + url.search)}`,
+    );
   }
 
   const queryClient = new QueryClient();

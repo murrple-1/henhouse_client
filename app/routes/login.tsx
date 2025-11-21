@@ -1,10 +1,16 @@
 import { MetaFunction } from '@remix-run/node';
 import { Link, useNavigate, useSearchParams } from '@remix-run/react';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
-import React, { useCallback, useContext, useMemo } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 
 import { getCSRFToken } from '~/api/csrftoken.lib';
-import { login } from '~/api/http/auth.http';
+import { getUserDetails, login } from '~/api/http/auth.http';
 import { ResponseError } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
 import { AlertsContext } from '~/contexts/alerts';
@@ -34,6 +40,42 @@ const Index: React.FC = () => {
   const isLoggedInContext = useContext(IsLoggedInContext);
   const alertsContext = useContext(AlertsContext);
 
+  const checkedIsLoggedInContext = useRef(false);
+
+  useEffect(() => {
+    if (configService === undefined) {
+      return;
+    }
+
+    if (checkedIsLoggedInContext.current) {
+      return;
+    }
+
+    if (isLoggedInContext.isLoggedIn) {
+      const host = configService.get<string>('API_HOST') as string;
+      getUserDetails(host, null).then(
+        () => {
+          const redirect = searchParams.get('redirect');
+          if (redirect !== null) {
+            if (redirect.startsWith('/') && !redirect.startsWith('//')) {
+              navigate(redirect);
+            } else {
+              navigate('/');
+            }
+          }
+        },
+        reason => {
+          if (reason instanceof ResponseError) {
+            if (reason.status === 401) {
+              isLoggedInContext.setIsLoggedIn(false);
+            }
+          }
+        },
+      );
+    }
+    checkedIsLoggedInContext.current = true;
+  }, [isLoggedInContext, searchParams, configService]);
+
   const initialValues = useMemo<FormValues>(
     () => ({ usernameEmail: '', password: '', stayLoggedIn: false }),
     [],
@@ -53,10 +95,6 @@ const Index: React.FC = () => {
 
   const onSubmit = useCallback(
     async (values: FormValues, actions: FormikHelpers<FormValues>) => {
-      if (isLoggedInContext === null) {
-        throw new Error('isLoggedInContext null');
-      }
-
       if (configService === undefined) {
         throw new Error('configSerive undefined');
       }

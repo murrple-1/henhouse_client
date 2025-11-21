@@ -26,10 +26,6 @@ export const Header: React.FC = () => {
   const onLogoutModalYesClick = useCallback(async () => {
     setIsLogoutModalOpen(false);
 
-    if (isLoggedInContext === null) {
-      throw new Error('isLoggedInContext null');
-    }
-
     if (configService === undefined) {
       throw new Error('configSerive undefined');
     }

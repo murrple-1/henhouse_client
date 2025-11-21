@@ -54,7 +54,10 @@ export const loader: LoaderFunction = async ({
   }
 
   if (!sessionId) {
-    return redirect('/login');
+    const url = new URL(request.url);
+    return redirect(
+      `/login?redirectTo=${encodeURIComponent(url.pathname + url.search)}`,
+    );
   }
 
   const queryClient = new QueryClient();
@@ -145,10 +148,6 @@ const View: React.FC = () => {
 
   const onSubmit = useCallback(
     async (values: FormValues, actions: FormikHelpers<FormValues>) => {
-      if (isLoggedInContext === null) {
-        throw new Error('isLoggedInContext null');
-      }
-
       if (configService === undefined) {
         throw new Error('configSerive undefined');
       }

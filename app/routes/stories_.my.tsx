@@ -23,16 +23,21 @@ import {
 import PropTypes from 'prop-types';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { getUserDetails } from '~/api/http/auth.http';
+import { User, getUserDetails } from '~/api/http/auth.http';
 import { Story, getStories } from '~/api/http/story.http';
 import { getSessionId } from '~/api/sessionid.lib';
+import { ResponseError } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
 import { Pagination } from '~/components/pagination';
 import { useConfig } from '~/hooks/use-config';
 
-export const meta: MetaFunction<typeof loader> = () => {
+export const meta: MetaFunction<typeof loader> = ({
+  data,
+}: {
+  data: LoaderData;
+}) => {
   return [
-    { title: 'Henhouse Server' },
+    { title: `Henhouse Server - My Stories (${data.username})` },
     { name: 'description', content: 'Welcome to Henhouse!' },
   ];
 };
@@ -87,7 +92,10 @@ export const loader: LoaderFunction = async ({
   }
 
   if (!sessionId) {
-    return redirect('/login');
+    const url = new URL(request.url);
+    return redirect(
+      `/login?redirectTo=${encodeURIComponent(url.pathname + url.search)}`,
+    );
   }
 
   const url = new URL(request.url);
@@ -114,10 +122,25 @@ export const loader: LoaderFunction = async ({
 
   const queryClient = new QueryClient();
 
-  const user = await queryClient.fetchQuery({
-    queryKey: ['user'],
-    queryFn: () => getUserDetails(process.env.API_HOST as string, sessionId),
-  });
+  let user: User;
+  try {
+    user = await queryClient.fetchQuery({
+      queryKey: ['user'],
+      queryFn: () => getUserDetails(process.env.API_HOST as string, sessionId),
+    });
+  } catch (error: unknown) {
+    if (error instanceof ResponseError) {
+      switch (error.status) {
+        case 401: {
+          const url = new URL(request.url);
+          return redirect(
+            `/login?redirectTo=${encodeURIComponent(url.pathname + url.search)}`,
+          );
+        }
+      }
+    }
+    throw new Response('unknown error', { status: 500 });
+  }
 
   const searchQuery = generateSearchQuery(user.username);
 

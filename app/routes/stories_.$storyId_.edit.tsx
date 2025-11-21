@@ -28,7 +28,7 @@ import { useCallback, useContext, useMemo, useState } from 'react';
 import { getCSRFToken } from '~/api/csrftoken.lib';
 import { getCategories } from '~/api/http/category.http';
 import { deleteChapter, getChapters } from '~/api/http/chapter.http';
-import { getStory, updateStory } from '~/api/http/story.http';
+import { deleteStory, getStory, updateStory } from '~/api/http/story.http';
 import { getSessionId } from '~/api/sessionid.lib';
 import { allPages } from '~/api/utils.lib';
 import { MainContainer } from '~/components/main-container';
@@ -183,12 +183,63 @@ const View: React.FC<Props> = ({ storyId }) => {
     enabled: configService !== undefined,
   });
 
+  const [isDeleteStoryModalOpen, setIsDeleteStoryModalOpen] = useState(false);
+
   const [isDeleteChapterModalOpen, setIsDeleteChapterModalOpen] =
     useState(false);
 
   const [deleteChapterUuid, setDeleteChapterUuid] = useState<string | null>(
     null,
   );
+  const deleteChapterName = useMemo(() => {
+    if (deleteChapterUuid === null || chapters === undefined) {
+      return '';
+    } else {
+      return (
+        chapters.find(chapter => chapter.uuid === deleteChapterUuid)?.name ?? ''
+      );
+    }
+  }, [chapters, deleteChapterUuid]);
+
+  const onDeleteClick = useCallback(() => {
+    setIsDeleteStoryModalOpen(true);
+  }, [setIsDeleteStoryModalOpen]);
+
+  const onDeleteStoryModalRequestClose = useCallback(() => {
+    setIsDeleteStoryModalOpen(false);
+  }, [setIsDeleteStoryModalOpen]);
+
+  const onDeleteStoryModalYesClick = useCallback(async () => {
+    if (configService === undefined) {
+      throw new Error('configSerive undefined');
+    }
+
+    const csrfToken = getCSRFToken(document.cookie);
+    if (csrfToken === null) {
+      throw new Error('csrfToken null');
+    }
+
+    if (story === undefined) {
+      throw new Error('story undefined');
+    }
+
+    const host = configService.get<string>('API_HOST') as string;
+
+    try {
+      await deleteStory(host, storyId, csrfToken, null);
+    } catch (error: unknown) {
+      handleError(error, isLoggedInContext, alertsContext, navigate);
+      return;
+    }
+    navigate('/stories/my');
+  }, [
+    isLoggedInContext,
+    alertsContext,
+    navigate,
+    configService,
+    setIsDeleteStoryModalOpen,
+    storyId,
+  ]);
 
   const onDeleteChapterModalRequestClose = useCallback(() => {
     setIsDeleteChapterModalOpen(false);
@@ -417,6 +468,7 @@ const View: React.FC<Props> = ({ storyId }) => {
               <button
                 type="button"
                 className="mt-2 w-1/2 rounded-sm dark:bg-red-500 dark:disabled:bg-red-800 dark:disabled:text-gray-500"
+                onClick={onDeleteClick}
               >
                 Delete
               </button>
@@ -434,11 +486,35 @@ const View: React.FC<Props> = ({ storyId }) => {
         <div className="w-full text-slate-800">{chapterElements}</div>
       </MainContainer>
       <Modal
+        isOpen={isDeleteStoryModalOpen}
+        onRequestClose={onDeleteStoryModalRequestClose}
+        contentLabel="Delete Story Modal"
+      >
+        <div>Are you sure you want to delete this story?</div>
+        <div className="mt-2 flex flex-row">
+          <button
+            className="w-24 rounded-sm dark:bg-red-500"
+            onClick={onDeleteStoryModalYesClick}
+          >
+            Yes
+          </button>
+          <span className="grow" />
+          <button
+            className="w-24 rounded-sm dark:bg-red-500"
+            onClick={onDeleteStoryModalRequestClose}
+          >
+            No
+          </button>
+        </div>
+      </Modal>
+      <Modal
         isOpen={isDeleteChapterModalOpen}
         onRequestClose={onDeleteChapterModalRequestClose}
         contentLabel="Delete Chapter Modal"
       >
-        <div>Are you sure you want to delete?</div>
+        <div>
+          Are you sure you want to delete chapter "{deleteChapterName}"?
+        </div>
         <div className="mt-2 flex flex-row">
           <button
             className="w-24 rounded-sm dark:bg-red-500"

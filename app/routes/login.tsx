@@ -74,7 +74,7 @@ const Index: React.FC = () => {
       );
     }
     checkedIsLoggedInContext.current = true;
-  }, [isLoggedInContext, searchParams, configService]);
+  }, [isLoggedInContext, searchParams, configService, navigate]);
 
   const initialValues = useMemo<FormValues>(
     () => ({ usernameEmail: '', password: '', stayLoggedIn: false }),

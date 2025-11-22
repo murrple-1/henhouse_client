@@ -41,12 +41,12 @@ export type SortField = keyof ChapterDetails;
 export async function getStoryChapter(
   host: string,
   storyId: string,
-  chapterNum: string,
+  chapterNum: number,
   sessionId: string | null,
 ): Promise<ChapterDetails> {
   try {
     const response = await fetch(
-      `${host}/api/art/story/${storyId}/chapter/${chapterNum}`,
+      `${host}/api/art/story/${storyId}/chapter/${chapterNum.toString(10)}`,
       {
         headers: await commonToHeaders(null, sessionId, {}),
         credentials: 'include',
@@ -129,6 +129,7 @@ export async function createChapter(
 
 export interface UpdateChapterInput {
   name?: string;
+  synopsis?: string;
   markdown?: string;
 }
 

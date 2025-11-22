@@ -14,5 +14,5 @@ export const Modal: React.FC<Props> = props => {
 };
 
 Modal.propTypes = {
-  children: PropTypes.element,
+  children: PropTypes.arrayOf(PropTypes.element),
 };

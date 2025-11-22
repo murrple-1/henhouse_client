@@ -1,3 +1,5 @@
+import { faBook } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   LoaderFunction,
   LoaderFunctionArgs,
@@ -5,6 +7,7 @@ import {
   TypedResponse,
 } from '@remix-run/node';
 import {
+  Link,
   ShouldRevalidateFunction,
   redirect,
   useLoaderData,
@@ -145,6 +148,11 @@ const View: React.FC<Props> = ({ storyId }) => {
 
   return (
     <MainContainer>
+      <div className="flex flex-row justify-center">
+        <Link to={`/stories/${storyId}`} className="text-red-500">
+          <FontAwesomeIcon icon={faBook} />
+        </Link>
+      </div>
       <Formik
         initialValues={initialValues}
         onSubmit={onSubmit}

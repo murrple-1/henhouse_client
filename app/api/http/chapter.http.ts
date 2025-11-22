@@ -27,7 +27,8 @@ const ZChapterDetails = ZChapter.extend({
     .transform(arg => new Date(arg)),
   publishedAt: z
     .union([z.string().datetime({ offset: true }), z.date()])
-    .transform(arg => new Date(arg)),
+    .nullable()
+    .transform(arg => (arg !== null ? new Date(arg) : null)),
   markdown: z.string(),
   story: z.string().uuid(),
 });
@@ -36,6 +37,26 @@ export type Chapter = z.infer<typeof ZChapter>;
 export type ChapterDetails = z.infer<typeof ZChapterDetails>;
 
 export type SortField = keyof ChapterDetails;
+
+export async function getStoryChapter(
+  host: string,
+  storyId: string,
+  chapterNum: string,
+  sessionId: string | null,
+): Promise<ChapterDetails> {
+  try {
+    const response = await fetch(
+      `${host}/api/art/story/${storyId}/chapter/${chapterNum}`,
+      {
+        headers: await commonToHeaders(null, sessionId, {}),
+        credentials: 'include',
+      },
+    );
+    return await handleResponse(response, ZChapterDetails);
+  } catch (error: unknown) {
+    handleError(getChapter.name, error);
+  }
+}
 
 export async function getChapter(
   host: string,
@@ -79,11 +100,13 @@ export async function getChapters(
 
 export interface CreateChapterInput {
   name: string;
+  synopsis: string;
   markdown: string;
 }
 
 export async function createChapter(
   host: string,
+  storyId: string,
   body: CreateChapterInput,
   csrfToken: string,
   sessionId: string | null,
@@ -92,7 +115,7 @@ export async function createChapter(
     const headers = await commonToHeaders(csrfToken, sessionId, {});
     headers.set('Content-Type', 'application/json');
 
-    const response = await fetch(`${host}/api/art/chapter`, {
+    const response = await fetch(`${host}/api/art/story/${storyId}/chapter`, {
       headers,
       credentials: 'include',
       method: 'POST',

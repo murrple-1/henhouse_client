@@ -101,7 +101,7 @@ export const loader: LoaderFunction = async ({
             process.env.API_HOST as string,
             storyId,
             { limit, offset },
-            null,
+            sessionId,
           ),
         ),
     }),

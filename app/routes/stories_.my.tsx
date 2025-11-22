@@ -284,7 +284,6 @@ const View: React.FC<Props> = ({ initialLimit, username }) => {
     },
     enabled: configService !== undefined,
   });
-  console.log('stories', stories);
 
   const onLimitChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {

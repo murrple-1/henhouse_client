@@ -204,6 +204,7 @@ const View: React.FC<Props> = ({ storyId, chapterNum }) => {
             />
             <div className="h-2" />
             <Field
+              as="textarea"
               type="text"
               name="synopsis"
               className="w-1/2 border-2 border-slate-700"
@@ -216,7 +217,8 @@ const View: React.FC<Props> = ({ storyId, chapterNum }) => {
             />
             <div className="h-2" />
             <Field
-              type="textarea"
+              as="textarea"
+              type="text"
               name="markdown"
               className="w-1/2 border-2 border-slate-700"
               placeholder="Content"

@@ -149,7 +149,7 @@ const View: React.FC<Props> = ({ storyId }) => {
   return (
     <MainContainer>
       <div className="flex flex-row justify-center">
-        <Link to={`/stories/${storyId}`} className="text-red-500">
+        <Link to={`/stories/${storyId}/edit`} className="text-red-500">
           <FontAwesomeIcon icon={faBook} />
         </Link>
       </div>
@@ -173,6 +173,7 @@ const View: React.FC<Props> = ({ storyId }) => {
             />
             <div className="h-2" />
             <Field
+              as="textarea"
               type="text"
               name="synopsis"
               className="w-1/2 border-2 border-slate-700"
@@ -185,7 +186,8 @@ const View: React.FC<Props> = ({ storyId }) => {
             />
             <div className="h-2" />
             <Field
-              type="textarea"
+              as="textarea"
+              type="text"
               name="markdown"
               className="w-1/2 border-2 border-slate-700"
               placeholder="Content"

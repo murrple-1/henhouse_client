@@ -58,7 +58,7 @@ export const loader: LoaderFunction = async ({
   if (!sessionId) {
     const url = new URL(request.url);
     return redirect(
-      `/login?redirectTo=${encodeURIComponent(url.pathname + url.search)}`,
+      `/login?redirect=${encodeURIComponent(url.pathname + url.search)}`,
     );
   }
 

@@ -1,4 +1,8 @@
-import { faGear, faX } from '@fortawesome/free-solid-svg-icons';
+import {
+  faGear,
+  faMagnifyingGlass,
+  faX,
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   LoaderFunction,
@@ -381,7 +385,10 @@ const View: React.FC<Props> = ({ storyId }) => {
       </div>
       <div className="ml-32 flex flex-col">
         <div className="flex flex-row justify-end">
-          <Link to={`/stories/${storyId}/${index}/edit`}>
+          <Link to={`/stories/${storyId}/${index}`}>
+            <FontAwesomeIcon icon={faMagnifyingGlass} height="1em" />
+          </Link>
+          <Link to={`/stories/${storyId}/${index}/edit`} className="ml-2">
             <FontAwesomeIcon icon={faGear} height="1em" />
           </Link>
           <div role="button" className="ml-2">

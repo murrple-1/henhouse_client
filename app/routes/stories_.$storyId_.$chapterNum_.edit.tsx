@@ -21,12 +21,17 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 import { ErrorMessage, Field, Form, Formik } from 'formik';
-import { useCallback, useContext, useMemo } from 'react';
+import { useCallback, useContext, useMemo, useState } from 'react';
 
 import { getCSRFToken } from '~/api/csrftoken.lib';
-import { getStoryChapter, updateChapter } from '~/api/http/chapter.http';
+import {
+  deleteChapter,
+  getStoryChapter,
+  updateChapter,
+} from '~/api/http/chapter.http';
 import { getSessionId } from '~/api/sessionid.lib';
 import { MainContainer } from '~/components/main-container';
+import { Modal } from '~/components/modal';
 import { AlertsContext } from '~/contexts/alerts';
 import { IsLoggedInContext } from '~/contexts/is-logged-in';
 import { useConfig } from '~/hooks/use-config';
@@ -119,6 +124,54 @@ const View: React.FC<Props> = ({ storyId, chapterNum }) => {
     },
   });
 
+  const chapterName = useMemo(() => {
+    return chapter?.name ?? '';
+  }, [chapter]);
+
+  const [isDeleteChapterModalOpen, setIsDeleteChapterModalOpen] =
+    useState(false);
+
+  const onDeleteClick = useCallback(() => {
+    setIsDeleteChapterModalOpen(true);
+  }, [setIsDeleteChapterModalOpen]);
+
+  const onDeleteChapterModalRequestClose = useCallback(() => {
+    setIsDeleteChapterModalOpen(false);
+  }, [setIsDeleteChapterModalOpen]);
+
+  const onDeleteChapterModalYesClick = useCallback(async () => {
+    if (chapter === undefined) {
+      throw new Error('chapter undefined');
+    }
+
+    if (configService === undefined) {
+      throw new Error('configSerive undefined');
+    }
+
+    const csrfToken = getCSRFToken(document.cookie);
+    if (csrfToken === null) {
+      throw new Error('csrfToken null');
+    }
+
+    const host = configService.get<string>('API_HOST') as string;
+
+    try {
+      await deleteChapter(host, chapter.uuid, csrfToken, null);
+    } catch (error: unknown) {
+      handleError(error, isLoggedInContext, alertsContext, navigate);
+      return;
+    }
+    navigate(`/stories/${storyId}/edit`);
+  }, [
+    isLoggedInContext,
+    alertsContext,
+    navigate,
+    configService,
+    setIsDeleteChapterModalOpen,
+    storyId,
+    chapter,
+  ]);
+
   const initialValues = useMemo<FormValues>(
     () => ({
       name: chapter?.name ?? '',
@@ -178,68 +231,99 @@ const View: React.FC<Props> = ({ storyId, chapterNum }) => {
   );
 
   return (
-    <MainContainer>
-      <div className="flex flex-row justify-center">
-        <Link to={`/stories/${storyId}/edit`} className="text-red-500">
-          <FontAwesomeIcon icon={faBook} />
-        </Link>
-      </div>
-      <Formik
-        initialValues={initialValues}
-        onSubmit={onSubmit}
-        validate={validate}
+    <>
+      <MainContainer>
+        <div className="flex flex-row justify-center">
+          <Link to={`/stories/${storyId}/edit`} className="text-red-500">
+            <FontAwesomeIcon icon={faBook} />
+          </Link>
+        </div>
+        <Formik
+          initialValues={initialValues}
+          onSubmit={onSubmit}
+          validate={validate}
+        >
+          {({ isSubmitting, isValid, dirty }) => (
+            <Form className="flex w-full flex-col items-center p-2">
+              <Field
+                type="text"
+                name="name"
+                className="w-1/2 border-2 border-slate-700"
+                placeholder="Name"
+              />
+              <ErrorMessage
+                name="name"
+                component="div"
+                className="text-red-600"
+              />
+              <div className="h-2" />
+              <Field
+                as="textarea"
+                type="text"
+                name="synopsis"
+                className="w-1/2 border-2 border-slate-700"
+                placeholder="Synopsis"
+              />
+              <ErrorMessage
+                name="synopsis"
+                component="div"
+                className="text-red-600"
+              />
+              <div className="h-2" />
+              <Field
+                as="textarea"
+                type="text"
+                name="markdown"
+                className="w-1/2 border-2 border-slate-700"
+                placeholder="Content"
+              />
+              <ErrorMessage
+                name="markdown"
+                component="div"
+                className="text-red-600"
+              />
+              <div className="h-2" />
+              <button
+                type="submit"
+                className="mt-2 w-1/2 rounded-sm dark:bg-red-500 dark:disabled:bg-red-800 dark:disabled:text-gray-500"
+                disabled={!(isValid && dirty) || isSubmitting}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                className="mt-2 w-1/2 rounded-sm dark:bg-red-500 dark:disabled:bg-red-800 dark:disabled:text-gray-500"
+                onClick={onDeleteClick}
+              >
+                Delete
+              </button>
+            </Form>
+          )}
+        </Formik>
+      </MainContainer>
+      <Modal
+        isOpen={isDeleteChapterModalOpen}
+        onRequestClose={onDeleteChapterModalRequestClose}
+        contentLabel="Delete Chapter Modal"
       >
-        {({ isSubmitting, isValid, dirty }) => (
-          <Form className="flex w-full flex-col items-center p-2">
-            <Field
-              type="text"
-              name="name"
-              className="w-1/2 border-2 border-slate-700"
-              placeholder="Name"
-            />
-            <ErrorMessage
-              name="name"
-              component="div"
-              className="text-red-600"
-            />
-            <div className="h-2" />
-            <Field
-              as="textarea"
-              type="text"
-              name="synopsis"
-              className="w-1/2 border-2 border-slate-700"
-              placeholder="Synopsis"
-            />
-            <ErrorMessage
-              name="synopsis"
-              component="div"
-              className="text-red-600"
-            />
-            <div className="h-2" />
-            <Field
-              as="textarea"
-              type="text"
-              name="markdown"
-              className="w-1/2 border-2 border-slate-700"
-              placeholder="Content"
-            />
-            <ErrorMessage
-              name="markdown"
-              component="div"
-              className="text-red-600"
-            />
-            <div className="h-2" />
-            <button
-              type="submit"
-              className="mt-2 w-1/2 rounded-sm dark:bg-red-500 dark:disabled:bg-red-800 dark:disabled:text-gray-500"
-              disabled={!(isValid && dirty) || isSubmitting}
-            >
-              Save
-            </button>
-          </Form>
-        )}
-      </Formik>
-    </MainContainer>
+        <div>Are you sure you want to delete chapter "{chapterName}"?</div>
+        <div className="mt-2 flex flex-row">
+          <button
+            className="w-24 rounded-sm dark:bg-red-500"
+            onClick={onDeleteChapterModalYesClick}
+          >
+            Yes
+          </button>
+          <span className="grow" />
+          <button
+            className="w-24 rounded-sm dark:bg-red-500"
+            onClick={onDeleteChapterModalRequestClose}
+          >
+            No
+          </button>
+        </div>
+      </Modal>
+    </>
   );
 };
 

@@ -98,7 +98,7 @@ export const loader: LoaderFunction = async ({
   let chapterName: string | null = null;
   if (chapterId !== null) {
     const chapter = await queryClient.fetchQuery({
-      queryKey: ['chapter', chapterId],
+      queryKey: ['story', storyId, 'chapter', chapterId],
       queryFn: () =>
         getChapter(process.env.API_HOST as string, chapterId, sessionId),
     });
@@ -116,6 +116,7 @@ export const loader: LoaderFunction = async ({
   };
 };
 
+// TODO navigation is currently broken
 export const shouldRevalidate: ShouldRevalidateFunction = () => false;
 
 interface Props {
@@ -145,7 +146,7 @@ const View: React.FC<Props> = ({
   });
 
   const { data: chapter, isPending: chpaterIsPending } = useQuery({
-    queryKey: ['chapter', chapterId],
+    queryKey: ['story', storyId, 'chapter', chapterId],
     queryFn: () => {
       if (configService === undefined) {
         throw new Error('configService undefined');

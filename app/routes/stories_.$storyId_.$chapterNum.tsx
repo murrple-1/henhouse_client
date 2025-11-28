@@ -13,6 +13,7 @@ import {
   Link,
   ShouldRevalidateFunction,
   useLoaderData,
+  useParams,
 } from '@remix-run/react';
 import {
   DehydratedState,
@@ -23,7 +24,7 @@ import {
 } from '@tanstack/react-query';
 import insaneSanitize from 'insane';
 import { parse as markedParse } from 'marked';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 
 import { getStoryWithUser } from '~/api/facade/story-with-user.http';
 import { getChapter, getChapters } from '~/api/http/chapter.http';
@@ -45,12 +46,8 @@ export const meta: MetaFunction<typeof loader> = ({
 
 interface LoaderData {
   dehydratedState: DehydratedState;
-  storyId: string;
-  chapterId: string | null;
   storyTitle: string | null;
   chapterName: string | null;
-  chapterNumber: number;
-  totalChapters: number;
 }
 
 export const loader: LoaderFunction = async ({
@@ -67,6 +64,9 @@ export const loader: LoaderFunction = async ({
 
   const storyId = params.storyId as string;
   const chapterNumber = parseInt(params.chapterNum as string, 10);
+  if (isNaN(chapterNumber) || chapterNumber < 0) {
+    throw new Response('not Found', { status: 404 });
+  }
 
   const queryClient = new QueryClient();
 
@@ -93,6 +93,9 @@ export const loader: LoaderFunction = async ({
     }),
   ]);
 
+  console.log('chapters', chapters);
+  console.log('chapterNumber', chapterNumber);
+
   const chapterId = chapters[chapterNumber]?.uuid ?? null;
 
   let chapterName: string | null = null;
@@ -107,31 +110,36 @@ export const loader: LoaderFunction = async ({
 
   return {
     dehydratedState: dehydrate(queryClient),
-    chapterId,
     storyTitle: story.title,
     chapterName,
-    storyId,
-    chapterNumber,
-    totalChapters: chapters.length,
   };
 };
 
-// TODO navigation is currently broken
-export const shouldRevalidate: ShouldRevalidateFunction = () => false;
-
-interface Props {
-  storyId: string;
-  chapterId: string | null;
-  chapterNumber: number;
-  totalChapters: number;
-}
-
-const View: React.FC<Props> = ({
-  chapterId,
-  storyId,
-  chapterNumber,
-  totalChapters,
+export const shouldRevalidate: ShouldRevalidateFunction = ({
+  currentParams,
+  nextParams,
 }) => {
+  const currentStoryId = currentParams.storyId as string;
+  const currentChapterNumber = currentParams.chapterNum as string;
+  const nextStoryId = nextParams.storyId as string;
+  const nextChapterNumber = nextParams.chapterNum as string;
+  return (
+    currentStoryId !== nextStoryId || currentChapterNumber !== nextChapterNumber
+  );
+};
+
+const View: React.FC = () => {
+  const params = useParams();
+
+  const storyId = params.storyId as string;
+  const chapterNumber = useMemo(() => {
+    const chapterNum_ = parseInt(params.chapterNum as string, 10);
+    if (isNaN(chapterNum_) || chapterNum_ < 0) {
+      throw new Error('not Found');
+    }
+    return chapterNum_;
+  }, [params]);
+
   const { data: configService } = useConfig();
   const { data: story, isPending: storyIsPending } = useQuery({
     queryKey: ['story:withUser', storyId],
@@ -142,22 +150,48 @@ const View: React.FC<Props> = ({
       const host = configService.get<string>('API_HOST') as string;
       return getStoryWithUser(host, storyId, null);
     },
-    enabled: configService !== undefined && chapterId !== null,
+    enabled: configService !== undefined,
   });
 
-  const { data: chapter, isPending: chpaterIsPending } = useQuery({
-    queryKey: ['story', storyId, 'chapter', chapterId],
+  const { data: chapters, isPending: chaptersIsPending } = useQuery({
+    queryKey: ['story', storyId, 'chapters'],
     queryFn: () => {
       if (configService === undefined) {
         throw new Error('configService undefined');
       }
-      if (chapterId === null) {
-        throw new Error('chapterId null');
+      const host = configService.get<string>('API_HOST') as string;
+      return allPages((limit, offset) =>
+        getChapters(
+          host,
+          storyId,
+          {
+            limit,
+            offset,
+          },
+          null,
+        ),
+      );
+    },
+    enabled: configService !== undefined,
+  });
+
+  const { data: chapter, isPending: chapterIsPending } = useQuery({
+    queryKey: ['story', storyId, 'chapter', chapterNumber],
+    queryFn: () => {
+      if (configService === undefined) {
+        throw new Error('configService undefined');
       }
       const host = configService.get<string>('API_HOST') as string;
+      if (chapters === undefined) {
+        throw new Error('chapters undefined');
+      }
+      const chapterId = chapters[chapterNumber]?.uuid;
+      if (chapterId === undefined) {
+        throw new Error('chapterId undefined');
+      }
       return getChapter(host, chapterId, null);
     },
-    enabled: configService !== undefined && chapterId !== null,
+    enabled: configService !== undefined && chapters !== undefined,
   });
 
   const [markdownHtml, setMarkdownHtml] = React.useState<string | null>(null);
@@ -188,7 +222,7 @@ const View: React.FC<Props> = ({
   }, [chapter, setMarkdownHtml]);
 
   let nextElement: React.ReactElement | null;
-  if (chapterNumber < totalChapters - 1) {
+  if (chapters !== undefined && chapterNumber < chapters.length - 1) {
     nextElement = (
       <Link
         to={`/stories/${storyId}/${chapterNumber + 1}`}
@@ -215,7 +249,7 @@ const View: React.FC<Props> = ({
     previousElement = null;
   }
 
-  if (storyIsPending || chpaterIsPending) {
+  if (storyIsPending || chaptersIsPending || chapterIsPending) {
     return <MainContainer>Loading...</MainContainer>;
   } else if (
     story === undefined ||
@@ -253,16 +287,10 @@ const View: React.FC<Props> = ({
 };
 
 export default function Index() {
-  const { dehydratedState, chapterId, storyId, chapterNumber, totalChapters } =
-    useLoaderData<LoaderData>();
+  const { dehydratedState } = useLoaderData<LoaderData>();
   return (
     <HydrationBoundary state={dehydratedState}>
-      <View
-        chapterId={chapterId}
-        storyId={storyId}
-        chapterNumber={chapterNumber}
-        totalChapters={totalChapters}
-      />
+      <View />
     </HydrationBoundary>
   );
 }

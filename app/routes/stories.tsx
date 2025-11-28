@@ -122,8 +122,6 @@ function generateSearchOptions(
 
 interface LoaderData {
   dehydratedState: DehydratedState;
-  limit: number;
-  smartSearch: string | null;
 }
 
 const DEFAULT_LIMIT = 20;
@@ -197,8 +195,6 @@ export const loader: LoaderFunction = async ({
   });
   return {
     dehydratedState: dehydrate(queryClient),
-    limit,
-    smartSearch,
   };
 };
 
@@ -295,21 +291,26 @@ interface SearchFormValues {
   smartSearch: string;
 }
 
-interface Props {
-  initialLimit: number;
-  initialSmartSearch: string | null;
-}
-
-const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
+const View: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const datetimeFormatter = useMemo(() => new Intl.DateTimeFormat(), []);
 
-  const [limit, setLimit] = useState(initialLimit);
-  const initialSearchValues = useMemo<SearchFormValues>(
-    () => ({ smartSearch: initialSmartSearch ?? '' }),
-    [initialSmartSearch],
-  );
+  const [limit, setLimit] = useState(() => {
+    const limitQuery = searchParams.get('limit');
+    let limit_: number = DEFAULT_LIMIT;
+    if (limitQuery !== null) {
+      limit_ = parseInt(limitQuery, 10);
+      if (isNaN(limit_)) {
+        limit_ = DEFAULT_LIMIT;
+      }
+    }
+    return limit_;
+  });
+
+  const initialSearchValues = useMemo<SearchFormValues>(() => {
+    return { smartSearch: searchParams.get('search') ?? '' };
+  }, [searchParams]);
 
   const [currentSearchOptions, setCurrentSearchOptions] =
     useState<PageQueryOptions>(() => paramsToSearchOptions(searchParams));
@@ -451,11 +452,11 @@ const View: React.FC<Props> = ({ initialLimit, initialSmartSearch }) => {
 };
 
 const Index: React.FC = () => {
-  const { dehydratedState, limit, smartSearch } = useLoaderData<LoaderData>();
+  const { dehydratedState } = useLoaderData<LoaderData>();
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <View initialLimit={limit} initialSmartSearch={smartSearch} />
+      <View />
     </HydrationBoundary>
   );
 };

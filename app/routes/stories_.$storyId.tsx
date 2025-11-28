@@ -7,6 +7,7 @@ import {
   Link,
   ShouldRevalidateFunction,
   useLoaderData,
+  useParams,
 } from '@remix-run/react';
 import {
   DehydratedState,
@@ -37,7 +38,6 @@ export const meta: MetaFunction<typeof loader> = ({
 
 interface LoaderData {
   dehydratedState: DehydratedState;
-  storyId: string;
   storyTitle: string | null;
 }
 
@@ -80,19 +80,26 @@ export const loader: LoaderFunction = async ({
   ]);
 
   return {
-    storyId,
-    storyTitle: story.title,
     dehydratedState: dehydrate(queryClient),
+    storyTitle: story.title,
   };
 };
 
-export const shouldRevalidate: ShouldRevalidateFunction = () => false;
+export const shouldRevalidate: ShouldRevalidateFunction = ({
+  currentParams,
+  nextParams,
+}) => {
+  const currentStoryId = currentParams.storyId as string;
+  const nextStoryId = nextParams.storyId as string;
 
-interface Props {
-  storyId: string;
-}
+  return currentStoryId !== nextStoryId;
+};
 
-const View: React.FC<Props> = ({ storyId }) => {
+const View: React.FC = () => {
+  const params = useParams();
+
+  const storyId = params.storyId as string;
+
   const { data: configService } = useConfig();
 
   const { data: story } = useQuery({
@@ -165,11 +172,11 @@ View.propTypes = {
 };
 
 const Index: React.FC = () => {
-  const { dehydratedState, storyId } = useLoaderData<LoaderData>();
+  const { dehydratedState } = useLoaderData<LoaderData>();
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <View storyId={storyId} />
+      <View />
     </HydrationBoundary>
   );
 };

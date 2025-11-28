@@ -73,7 +73,6 @@ function generateSearchOptions(
 
 interface LoaderData {
   dehydratedState: DehydratedState;
-  limit: number;
   username: string;
 }
 
@@ -160,7 +159,6 @@ export const loader: LoaderFunction = async ({
   });
   return {
     dehydratedState: dehydrate(queryClient),
-    limit,
     username: user.username,
   };
 };
@@ -243,16 +241,26 @@ function paramsToSearchOptions(
 }
 
 interface Props {
-  initialLimit: number;
   username: string;
 }
 
-const View: React.FC<Props> = ({ initialLimit, username }) => {
+const View: React.FC<Props> = ({ username }) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const datetimeFormatter = useMemo(() => new Intl.DateTimeFormat(), []);
 
-  const [limit, setLimit] = useState(initialLimit);
+  const [limit, setLimit] = useState(() => {
+    const limitQuery = searchParams.get('limit');
+    let limit_: number = DEFAULT_LIMIT;
+
+    if (limitQuery !== null) {
+      limit_ = parseInt(limitQuery, 10);
+      if (isNaN(limit_)) {
+        limit_ = DEFAULT_LIMIT;
+      }
+    }
+    return limit_;
+  });
 
   const [currentSearchOptions, setCurrentSearchOptions] =
     useState<PageQueryOptions>(() =>
@@ -360,11 +368,11 @@ const View: React.FC<Props> = ({ initialLimit, username }) => {
 };
 
 const Index: React.FC = () => {
-  const { dehydratedState, limit, username } = useLoaderData<LoaderData>();
+  const { dehydratedState, username } = useLoaderData<LoaderData>();
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <View initialLimit={limit} username={username} />
+      <View username={username} />
     </HydrationBoundary>
   );
 };

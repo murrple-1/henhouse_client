@@ -12,6 +12,7 @@ import {
   redirect,
   useLoaderData,
   useNavigate,
+  useParams,
 } from '@remix-run/react';
 import {
   DehydratedState,
@@ -46,8 +47,6 @@ export const meta: MetaFunction = () => {
 
 interface LoaderData {
   dehydratedState: DehydratedState;
-  storyId: string;
-  chapterNum: number;
 }
 
 export const loader: LoaderFunction = async ({
@@ -87,17 +86,10 @@ export const loader: LoaderFunction = async ({
 
   return {
     dehydratedState: dehydrate(queryClient),
-    storyId,
-    chapterNum,
   };
 };
 
 export const shouldRevalidate: ShouldRevalidateFunction = () => false;
-
-interface Props {
-  storyId: string;
-  chapterNum: number;
-}
 
 interface FormValues {
   name: string;
@@ -105,8 +97,18 @@ interface FormValues {
   markdown: string;
 }
 
-const View: React.FC<Props> = ({ storyId, chapterNum }) => {
+const View: React.FC = () => {
   const navigate = useNavigate();
+  const params = useParams();
+
+  const storyId = params.storyId as string;
+  const chapterNum = useMemo(() => {
+    const chapterNum_ = parseInt(params.chapterNum as string, 10);
+    if (isNaN(chapterNum_) || chapterNum_ < 0) {
+      throw new Error('not Found');
+    }
+    return chapterNum_;
+  }, [params]);
 
   const isLoggedInContext = useContext(IsLoggedInContext);
   const alertsContext = useContext(AlertsContext);
@@ -167,7 +169,6 @@ const View: React.FC<Props> = ({ storyId, chapterNum }) => {
     alertsContext,
     navigate,
     configService,
-    setIsDeleteChapterModalOpen,
     storyId,
     chapter,
   ]);
@@ -227,7 +228,14 @@ const View: React.FC<Props> = ({ storyId, chapterNum }) => {
       }
       navigate(`/stories/${storyId}/edit`);
     },
-    [configService, isLoggedInContext, alertsContext, navigate, storyId],
+    [
+      configService,
+      isLoggedInContext,
+      alertsContext,
+      navigate,
+      storyId,
+      chapter,
+    ],
   );
 
   return (
@@ -306,7 +314,9 @@ const View: React.FC<Props> = ({ storyId, chapterNum }) => {
         onRequestClose={onDeleteChapterModalRequestClose}
         contentLabel="Delete Chapter Modal"
       >
-        <div>Are you sure you want to delete chapter "{chapterName}"?</div>
+        <div>
+          Are you sure you want to delete chapter &quot;{chapterName}&quot;?
+        </div>
         <div className="mt-2 flex flex-row">
           <button
             className="w-24 rounded-sm dark:bg-red-500"
@@ -328,11 +338,11 @@ const View: React.FC<Props> = ({ storyId, chapterNum }) => {
 };
 
 const Index: React.FC = () => {
-  const { dehydratedState, storyId, chapterNum } = useLoaderData<LoaderData>();
+  const { dehydratedState } = useLoaderData<LoaderData>();
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <View storyId={storyId} chapterNum={chapterNum} />
+      <View />
     </HydrationBoundary>
   );
 };

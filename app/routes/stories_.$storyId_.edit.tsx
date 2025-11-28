@@ -16,6 +16,7 @@ import {
   redirect,
   useLoaderData,
   useNavigate,
+  useParams,
 } from '@remix-run/react';
 import {
   DehydratedState,
@@ -51,7 +52,6 @@ export const meta: MetaFunction = () => {
 
 interface LoaderData {
   dehydratedState: DehydratedState;
-  storyId: string;
 }
 
 export const loader: LoaderFunction = async ({
@@ -113,15 +113,10 @@ export const loader: LoaderFunction = async ({
 
   return {
     dehydratedState: dehydrate(queryClient),
-    storyId,
   };
 };
 
 export const shouldRevalidate: ShouldRevalidateFunction = () => false;
-
-interface Props {
-  storyId: string;
-}
 
 interface FormValues {
   title: string;
@@ -130,8 +125,11 @@ interface FormValues {
   tagsString: string;
 }
 
-const View: React.FC<Props> = ({ storyId }) => {
+const View: React.FC = () => {
   const navigate = useNavigate();
+  const params = useParams();
+
+  const storyId = params.storyId as string;
 
   const isLoggedInContext = useContext(IsLoggedInContext);
   const alertsContext = useContext(AlertsContext);
@@ -241,8 +239,8 @@ const View: React.FC<Props> = ({ storyId }) => {
     alertsContext,
     navigate,
     configService,
-    setIsDeleteStoryModalOpen,
     storyId,
+    story,
   ]);
 
   const onDeleteChapterModalRequestClose = useCallback(() => {
@@ -337,7 +335,13 @@ const View: React.FC<Props> = ({ storyId }) => {
           host,
           storyId,
           {
-            // TODO implement
+            category: values.category,
+            title: values.title,
+            synopsis: values.synopsis,
+            tags: values.tagsString
+              .split(',')
+              .map(tag => tag.trim())
+              .filter(tag => tag !== ''),
           },
           csrfToken,
           null,
@@ -520,7 +524,8 @@ const View: React.FC<Props> = ({ storyId }) => {
         contentLabel="Delete Chapter Modal"
       >
         <div>
-          Are you sure you want to delete chapter "{deleteChapterName}"?
+          Are you sure you want to delete chapter &quot;{deleteChapterName}
+          &quot;?
         </div>
         <div className="mt-2 flex flex-row">
           <button
@@ -547,11 +552,11 @@ View.propTypes = {
 };
 
 const Index: React.FC = () => {
-  const { dehydratedState, storyId } = useLoaderData<LoaderData>();
+  const { dehydratedState } = useLoaderData<LoaderData>();
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <View storyId={storyId} />
+      <View />
     </HydrationBoundary>
   );
 };

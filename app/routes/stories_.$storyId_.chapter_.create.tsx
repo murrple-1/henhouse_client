@@ -12,6 +12,7 @@ import {
   redirect,
   useLoaderData,
   useNavigate,
+  useParams,
 } from '@remix-run/react';
 import {
   DehydratedState,
@@ -40,12 +41,10 @@ export const meta: MetaFunction = () => {
 
 interface LoaderData {
   dehydratedState: DehydratedState;
-  storyId: string;
 }
 
 export const loader: LoaderFunction = async ({
   request,
-  params,
 }: LoaderFunctionArgs): Promise<LoaderData | TypedResponse> => {
   const cookieHeader = request.headers.get('Cookie');
   let sessionId: string | null;
@@ -62,21 +61,14 @@ export const loader: LoaderFunction = async ({
     );
   }
 
-  const storyId = params.storyId as string;
-
   const queryClient = new QueryClient();
 
   return {
     dehydratedState: dehydrate(queryClient),
-    storyId,
   };
 };
 
 export const shouldRevalidate: ShouldRevalidateFunction = () => false;
-
-interface Props {
-  storyId: string;
-}
 
 interface FormValues {
   name: string;
@@ -84,8 +76,11 @@ interface FormValues {
   markdown: string;
 }
 
-const View: React.FC<Props> = ({ storyId }) => {
+const View: React.FC = () => {
   const navigate = useNavigate();
+  const params = useParams();
+
+  const storyId = params.storyId as string;
 
   const isLoggedInContext = useContext(IsLoggedInContext);
   const alertsContext = useContext(AlertsContext);
@@ -213,11 +208,11 @@ const View: React.FC<Props> = ({ storyId }) => {
 };
 
 const Index: React.FC = () => {
-  const { dehydratedState, storyId } = useLoaderData<LoaderData>();
+  const { dehydratedState } = useLoaderData<LoaderData>();
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <View storyId={storyId} />
+      <View />
     </HydrationBoundary>
   );
 };

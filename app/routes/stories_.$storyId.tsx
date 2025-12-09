@@ -167,10 +167,6 @@ const View: React.FC = () => {
   );
 };
 
-View.propTypes = {
-  storyId: PropTypes.string.isRequired,
-};
-
 const Index: React.FC = () => {
   const { dehydratedState } = useLoaderData<LoaderData>();
 

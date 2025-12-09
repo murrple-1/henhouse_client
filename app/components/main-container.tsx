@@ -10,5 +10,5 @@ export const MainContainer: React.FC<PropsWithChildren> = ({ children }) => {
 };
 
 MainContainer.propTypes = {
-  children: PropTypes.node,
+  children: PropTypes.arrayOf(PropTypes.element),
 };

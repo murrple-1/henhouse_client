@@ -27,7 +27,6 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
-import PropTypes from 'prop-types';
 import { useCallback, useContext, useMemo, useState } from 'react';
 
 import { getCSRFToken } from '~/api/csrftoken.lib';

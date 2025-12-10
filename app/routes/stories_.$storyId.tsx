@@ -16,7 +16,6 @@ import {
   dehydrate,
   useQuery,
 } from '@tanstack/react-query';
-import PropTypes from 'prop-types';
 
 import { getStoryWithUser } from '~/api/facade/story-with-user.http';
 import { getChapters } from '~/api/http/chapter.http';

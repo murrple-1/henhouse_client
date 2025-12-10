@@ -3,6 +3,7 @@
   "private": true,
   "sideEffects": false,
   "type": "module",
+  "version": "0.0.1",
   "scripts": {
     "build": "remix vite:build",
     "dev": "remix vite:dev",
@@ -53,7 +54,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
     "postcss": "^8.5.3",
-    "prettier": "^3.5.3",
+    "prettier": "3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "typescript": "^5.8.2",
     "vite": "^6.2.4",

@@ -6,6 +6,7 @@ export function useLocalStorage(
   const [state, setState] = useState<string | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState(localStorage.getItem(key));
   }, [key, setState]);
 

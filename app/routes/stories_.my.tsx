@@ -21,7 +21,7 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 import PropTypes from 'prop-types';
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 
 import { User, getUserDetails } from '~/api/http/auth.http';
 import { Story, getStories } from '~/api/http/story.http';
@@ -199,10 +199,12 @@ const StoryCard: React.FC<StoryCardProps> = memo(
   },
 );
 
+/* eslint-disable import/no-named-as-default-member */
 StoryCard.propTypes = {
   story: PropTypes.any.isRequired,
   datetimeFormatter: PropTypes.any.isRequired,
 };
+/* eslint-enable import/no-named-as-default-member */
 StoryCard.displayName = 'StoryCard';
 
 function paramsToSearchOptions(
@@ -250,28 +252,14 @@ const View: React.FC<Props> = ({ username }) => {
   const datetimeFormatter = useMemo(() => new Intl.DateTimeFormat(), []);
 
   const [limit, setLimit] = useState(() => {
-    const limitQuery = searchParams.get('limit');
-    let limit_: number = DEFAULT_LIMIT;
-
-    if (limitQuery !== null) {
-      limit_ = parseInt(limitQuery, 10);
-      if (isNaN(limit_)) {
-        limit_ = DEFAULT_LIMIT;
-      }
-    }
-    return limit_;
+    const options = paramsToSearchOptions(searchParams, username);
+    return options.limit;
   });
 
-  const [currentSearchOptions, setCurrentSearchOptions] =
-    useState<PageQueryOptions>(() =>
-      paramsToSearchOptions(searchParams, username),
-    );
-
-  useEffect(() => {
-    const options = paramsToSearchOptions(searchParams, username);
-    setLimit(options.limit);
-    setCurrentSearchOptions(options);
-  }, [setLimit, setCurrentSearchOptions, searchParams, username]);
+  const currentSearchOptions = useMemo(
+    () => paramsToSearchOptions(searchParams, username),
+    [username, searchParams],
+  );
 
   const { data: configService } = useConfig();
 

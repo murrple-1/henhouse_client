@@ -120,9 +120,11 @@ export const Pagination: React.FC<Props> = memo(
 );
 
 Pagination.propTypes = {
+  /* eslint-disable import/no-named-as-default-member */
   currentOffset: PropTypes.number.isRequired,
   limit: PropTypes.number.isRequired,
   toHrefFn: PropTypes.func.isRequired,
   totalEntries: PropTypes.number.isRequired,
+  /* eslint-enable import/no-named-as-default-member */
 };
 Pagination.displayName = 'Pagination';

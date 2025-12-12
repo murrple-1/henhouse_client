@@ -24,7 +24,7 @@ import {
 } from '@tanstack/react-query';
 import insaneSanitize from 'insane';
 import { parse as markedParse } from 'marked';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { getStoryWithUser } from '~/api/facade/story-with-user.http';
 import { getChapter, getChapters } from '~/api/http/chapter.http';
@@ -194,7 +194,7 @@ const View: React.FC = () => {
     enabled: configService !== undefined && chapters !== undefined,
   });
 
-  const [markdownHtml, setMarkdownHtml] = React.useState<string | null>(null);
+  const [markdownHtml, setMarkdownHtml] = useState<string | null>(null);
 
   useEffect(() => {
     const chapter_ = chapter;

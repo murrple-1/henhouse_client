@@ -202,21 +202,13 @@ const View: React.FC = () => {
     enabled: configService !== undefined,
   });
 
-  const [filteredCategories, setFilteredCategories] = useState(
-    categories ?? [],
-  );
-
-  useEffect(() => {
-    if (categories === undefined) {
-      return;
-    }
-
-    setFilteredCategories(
-      categories.filter(c =>
+  const filteredCategories = useMemo(
+    () =>
+      categories?.filter(c =>
         c.prettyName.toLowerCase().includes(debouncedCategoryFilter.trim()),
-      ),
-    );
-  }, [categories, debouncedCategoryFilter, setFilteredCategories]);
+      ) ?? [],
+    [debouncedCategoryFilter, categories],
+  );
 
   const { data: tags } = useQuery({
     queryKey: ['tags', debouncedTagsFilter.trim()],

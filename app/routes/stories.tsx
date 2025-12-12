@@ -24,7 +24,7 @@ import {
 } from '@tanstack/react-query';
 import { Field, Form, Formik, FormikHelpers } from 'formik';
 import PropTypes from 'prop-types';
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 
 import {
   StoryWithUser,
@@ -239,8 +239,10 @@ const StoryCard: React.FC<StoryCardProps> = memo(
 );
 
 StoryCard.propTypes = {
+  /* eslint-disable import/no-named-as-default-member */
   storyWithUser: PropTypes.any.isRequired,
   datetimeFormatter: PropTypes.any.isRequired,
+  /* eslint-enable import/no-named-as-default-member */
 };
 StoryCard.displayName = 'StoryCard';
 
@@ -297,29 +299,18 @@ const View: React.FC = () => {
   const datetimeFormatter = useMemo(() => new Intl.DateTimeFormat(), []);
 
   const [limit, setLimit] = useState(() => {
-    const limitQuery = searchParams.get('limit');
-    let limit_: number = DEFAULT_LIMIT;
-    if (limitQuery !== null) {
-      limit_ = parseInt(limitQuery, 10);
-      if (isNaN(limit_)) {
-        limit_ = DEFAULT_LIMIT;
-      }
-    }
-    return limit_;
+    const options = paramsToSearchOptions(searchParams);
+    return options.limit;
   });
 
   const initialSearchValues = useMemo<SearchFormValues>(() => {
     return { smartSearch: searchParams.get('search') ?? '' };
   }, [searchParams]);
 
-  const [currentSearchOptions, setCurrentSearchOptions] =
-    useState<PageQueryOptions>(() => paramsToSearchOptions(searchParams));
-
-  useEffect(() => {
-    const options = paramsToSearchOptions(searchParams);
-    setLimit(options.limit);
-    setCurrentSearchOptions(options);
-  }, [setLimit, setCurrentSearchOptions, searchParams]);
+  const currentSearchOptions = useMemo(
+    () => paramsToSearchOptions(searchParams),
+    [searchParams],
+  );
 
   const { data: configService } = useConfig();
 

@@ -10,5 +10,7 @@ export const MainContainer: React.FC<PropsWithChildren> = ({ children }) => {
 };
 
 MainContainer.propTypes = {
+  /* eslint-disable import/no-named-as-default-member */
   children: PropTypes.arrayOf(PropTypes.element),
+  /* eslint-enable import/no-named-as-default-member */
 };
